@@ -55,7 +55,7 @@ local Zones = {
 		Vector3.new(-357, 47, 168),
 		Vector3.new(-357, 47, 204),
 		Vector3.new(-401, 47, 204),
-		Vector3.new(-401, 169, 169)
+		Vector3.new(-401, 47, 169)
 	}
 }
 
@@ -68,11 +68,13 @@ local function getCharacter()
 end
 
 local function getHumanoid()
-	return getCharacter():WaitForChild("Humanoid")
+	local Character = getCharacter()
+	return Character:WaitForChild("Humanoid")
 end
 
 local function getRoot()
-	return getCharacter():WaitForChild("HumanoidRootPart")
+	local Character = getCharacter()
+	return Character:WaitForChild("HumanoidRootPart")
 end
 
 --==================================================
@@ -94,20 +96,18 @@ local function getClosestZone()
 
 	local ClosestZone = nil
 	local ClosestDistance = math.huge
-	local ClosestName = nil
 
-	for ZoneName, Points in pairs(Zones) do
+	for _, Points in pairs(Zones) do
 		local Center = getZoneCenter(Points)
 		local Distance = (Root.Position - Center).Magnitude
 
 		if Distance < ClosestDistance then
 			ClosestDistance = Distance
 			ClosestZone = Points
-			ClosestName = ZoneName
 		end
 	end
 
-	return ClosestZone, ClosestName
+	return ClosestZone
 end
 
 --==================================================
@@ -115,25 +115,39 @@ end
 --==================================================
 
 local function touchToken(Token)
-	local Root = getRoot()
-
-	if Token:IsA("BasePart") then
-
-		firetouchinterest(Root, Token, 0)
-		task.wait()
-		firetouchinterest(Root, Token, 1)
-
-	elseif Token:IsA("Model") then
-
-		local Part = Token.PrimaryPart
-			or Token:FindFirstChildWhichIsA("BasePart")
-
-		if Part then
-			firetouchinterest(Root, Part, 0)
-			task.wait()
-			firetouchinterest(Root, Part, 1)
-		end
+	if not Token or not Token.Parent then
+		return
 	end
+
+	local Root
+
+	pcall(function()
+		Root = getRoot()
+	end)
+
+	if not Root or not Root.Parent then
+		return
+	end
+
+	pcall(function()
+		if Token:IsA("BasePart") then
+
+			firetouchinterest(Root, Token, 0)
+			task.wait()
+			firetouchinterest(Root, Token, 1)
+
+		elseif Token:IsA("Model") then
+
+			local Part = Token.PrimaryPart
+				or Token:FindFirstChildWhichIsA("BasePart")
+
+			if Part then
+				firetouchinterest(Root, Part, 0)
+				task.wait()
+				firetouchinterest(Root, Part, 1)
+			end
+		end
+	end)
 end
 
 --==================================================
@@ -143,6 +157,7 @@ end
 
 task.spawn(function()
 	while true do
+
 		for _, Token in ipairs(Tokens:GetChildren()) do
 			task.spawn(touchToken, Token)
 		end
@@ -160,6 +175,7 @@ local MovementKeys = {
 	Enum.KeyCode.A,
 	Enum.KeyCode.S,
 	Enum.KeyCode.D,
+
 	Enum.KeyCode.Up,
 	Enum.KeyCode.Down,
 	Enum.KeyCode.Left,
@@ -176,15 +192,62 @@ end
 
 local function SetMovementBlocked(State)
 	if State then
+
 		CAS:BindAction(
 			"Spo0kNet_BlockMovement",
 			BlockMovement,
 			false,
 			table.unpack(MovementKeys)
 		)
+
 	else
+
 		CAS:UnbindAction("Spo0kNet_BlockMovement")
+
 	end
+end
+
+--==================================================
+-- MOVE TO POINT
+--==================================================
+
+local function MoveToPoint(Position)
+	if not Enabled then
+		return false
+	end
+
+	local Humanoid
+
+	pcall(function()
+		Humanoid = getHumanoid()
+	end)
+
+	if not Humanoid or Humanoid.Health <= 0 then
+		return false
+	end
+
+	Humanoid:MoveTo(Position)
+
+	-- Don't wait forever for MoveToFinished
+	local StartTime = tick()
+	local Timeout = 3
+
+	while Enabled and Humanoid.Health > 0 do
+
+		local Root = getRoot()
+
+		if (Root.Position - Position).Magnitude <= 4 then
+			return true
+		end
+
+		if tick() - StartTime >= Timeout then
+			return true
+		end
+
+		task.wait(0.1)
+	end
+
+	return false
 end
 
 --==================================================
@@ -192,26 +255,32 @@ end
 --==================================================
 
 task.spawn(function()
+
 	while true do
+
 		if Enabled then
+
 			local Zone = getClosestZone()
 
 			if Zone then
-				local Humanoid = getHumanoid()
 
 				for _, Position in ipairs(Zone) do
+
 					if not Enabled then
 						break
 					end
 
-					Humanoid:MoveTo(Position)
-					Humanoid.MoveToFinished:Wait()
+					MoveToPoint(Position)
+
+					task.wait(0.1)
 				end
 			end
+
 		end
 
-		task.wait()
+		task.wait(0.1)
 	end
+
 end)
 
 --==================================================
@@ -219,6 +288,7 @@ end)
 --==================================================
 
 UIS.InputBegan:Connect(function(Input, Processed)
+
 	if Processed then
 		return
 	end
@@ -232,4 +302,19 @@ UIS.InputBegan:Connect(function(Input, Processed)
 	SetMovementBlocked(Enabled)
 
 	print("Zone Movement:", Enabled and "ON" or "OFF")
+
+end)
+
+--==================================================
+-- CLEAN UP ON CHARACTER RESPAWN
+--==================================================
+
+Player.CharacterAdded:Connect(function()
+
+	task.wait(1)
+
+	if Enabled then
+		SetMovementBlocked(true)
+	end
+
 end)
