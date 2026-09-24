@@ -195,9 +195,6 @@ UIS.InputBegan:Connect(function(Input, Processed)
 
 	Enabled = not Enabled
 
-	print("Spo0kNet Activated. Press = to autofarm!")
-	print("-----")
-	print("Token Collection: ALWAYS ON")
 	print("Zone Movement:", Enabled and "ON" or "OFF")
 end)
 
