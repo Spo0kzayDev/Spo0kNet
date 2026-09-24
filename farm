@@ -56,6 +56,13 @@ local Zones = {
 		Vector3.new(-357, 47, 204),
 		Vector3.new(-401, 47, 204),
 		Vector3.new(-401, 47, 169)
+	},
+
+	["Zone 7"] = {
+	Vector3.new(-309, 20, -558),
+	Vector3.new(-342, 20, -558),
+	Vector3.new(-343, 20, -513),
+	Vector3.new(-313, 20, -513)
 	}
 }
 
