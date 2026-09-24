@@ -4,6 +4,7 @@
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local CAS = game:GetService("ContextActionService")
 
 local Player = Players.LocalPlayer
 local Tokens = workspace:WaitForChild("Tokens")
@@ -54,7 +55,7 @@ local Zones = {
 		Vector3.new(-357, 47, 168),
 		Vector3.new(-357, 47, 204),
 		Vector3.new(-401, 47, 204),
-		Vector3.new(-401, 47, 169)
+		Vector3.new(-401, 169, 169)
 	}
 }
 
@@ -151,18 +152,51 @@ task.spawn(function()
 end)
 
 --==================================================
+-- BLOCK MOVEMENT KEYS
+--==================================================
+
+local MovementKeys = {
+	Enum.KeyCode.W,
+	Enum.KeyCode.A,
+	Enum.KeyCode.S,
+	Enum.KeyCode.D,
+	Enum.KeyCode.Up,
+	Enum.KeyCode.Down,
+	Enum.KeyCode.Left,
+	Enum.KeyCode.Right
+}
+
+local function BlockMovement()
+	if Enabled then
+		return Enum.ContextActionResult.Sink
+	end
+
+	return Enum.ContextActionResult.Pass
+end
+
+local function SetMovementBlocked(State)
+	if State then
+		CAS:BindAction(
+			"Spo0kNet_BlockMovement",
+			BlockMovement,
+			false,
+			table.unpack(MovementKeys)
+		)
+	else
+		CAS:UnbindAction("Spo0kNet_BlockMovement")
+	end
+end
+
+--==================================================
 -- ZONE MOVEMENT LOOP
--- TOGGLED WITH "="
 --==================================================
 
 task.spawn(function()
 	while true do
 		if Enabled then
-			local Zone, ZoneName = getClosestZone()
+			local Zone = getClosestZone()
 
 			if Zone then
-				print("Selected:", ZoneName)
-
 				local Humanoid = getHumanoid()
 
 				for _, Position in ipairs(Zone) do
@@ -195,8 +229,7 @@ UIS.InputBegan:Connect(function(Input, Processed)
 
 	Enabled = not Enabled
 
+	SetMovementBlocked(Enabled)
+
 	print("Zone Movement:", Enabled and "ON" or "OFF")
 end)
-
-print("Spo0kNet Token Collector: ALWAYS ON")
-print("Press = to toggle zone movement.")
