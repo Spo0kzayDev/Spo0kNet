@@ -1,0 +1,206 @@
+--// TOKEN + ZONE LOOP
+--// Press "=" to toggle ON/OFF
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
+local Tokens = workspace:WaitForChild("Tokens")
+
+local Enabled = false
+
+--==================================================
+-- ZONES
+--==================================================
+
+local Zones = {
+	["Zone 1"] = {
+		Vector3.new(-7, 3, -76),
+		Vector3.new(26, 3, -77),
+		Vector3.new(26, 3, -42),
+		Vector3.new(-6, 3, -42)
+	},
+
+	["Zone 2"] = {
+		Vector3.new(-139, 19, 37),
+		Vector3.new(-139, 19, 80),
+		Vector3.new(-191, 19, 80),
+		Vector3.new(-190, 19, 41)
+	},
+
+	["Zone 3"] = {
+		Vector3.new(-2, 19, -131),
+		Vector3.new(-68, 19, -131),
+		Vector3.new(-67, 19, -169),
+		Vector3.new(-3, 19, -170)
+	},
+
+	["Zone 4"] = {
+		Vector3.new(-310, 35, -411),
+		Vector3.new(-240, 35, -411),
+		Vector3.new(-241, 35, -369),
+		Vector3.new(-307, 35, -370)
+	},
+
+	["Zone 5"] = {
+		Vector3.new(-140, 59, -398),
+		Vector3.new(-141, 59, -455),
+		Vector3.new(-92, 59, -455),
+		Vector3.new(-92, 59, -398)
+	},
+
+	["Zone 6"] = {
+		Vector3.new(-357, 47, 168),
+		Vector3.new(-357, 47, 204),
+		Vector3.new(-401, 47, 204),
+		Vector3.new(-401, 47, 169)
+	}
+}
+
+--==================================================
+-- CHARACTER
+--==================================================
+
+local function getCharacter()
+	return Player.Character or Player.CharacterAdded:Wait()
+end
+
+local function getHumanoid()
+	return getCharacter():WaitForChild("Humanoid")
+end
+
+local function getRoot()
+	return getCharacter():WaitForChild("HumanoidRootPart")
+end
+
+--==================================================
+-- ZONE FUNCTIONS
+--==================================================
+
+local function getZoneCenter(Points)
+	local Center = Vector3.zero
+
+	for _, Point in ipairs(Points) do
+		Center += Point
+	end
+
+	return Center / #Points
+end
+
+local function getClosestZone()
+	local Root = getRoot()
+
+	local ClosestZone = nil
+	local ClosestDistance = math.huge
+	local ClosestName = nil
+
+	for ZoneName, Points in pairs(Zones) do
+		local Center = getZoneCenter(Points)
+		local Distance = (Root.Position - Center).Magnitude
+
+		if Distance < ClosestDistance then
+			ClosestDistance = Distance
+			ClosestZone = Points
+			ClosestName = ZoneName
+		end
+	end
+
+	return ClosestZone, ClosestName
+end
+
+--==================================================
+-- TOKEN FUNCTION
+--==================================================
+
+local function touchToken(Token)
+	if not Enabled then
+		return
+	end
+
+	local Root = getRoot()
+
+	if Token:IsA("BasePart") then
+
+		firetouchinterest(Root, Token, 0)
+		task.wait()
+		firetouchinterest(Root, Token, 1)
+
+	elseif Token:IsA("Model") then
+
+		local Part = Token.PrimaryPart
+			or Token:FindFirstChildWhichIsA("BasePart")
+
+		if Part then
+			firetouchinterest(Root, Part, 0)
+			task.wait()
+			firetouchinterest(Root, Part, 1)
+		end
+	end
+end
+
+--==================================================
+-- TOKEN LOOP
+--==================================================
+
+task.spawn(function()
+	while true do
+		if Enabled then
+			for _, Token in ipairs(Tokens:GetChildren()) do
+				if not Enabled then
+					break
+				end
+
+				task.spawn(touchToken, Token)
+			end
+		end
+
+		task.wait(1)
+	end
+end)
+
+--==================================================
+-- ZONE MOVEMENT LOOP
+--==================================================
+
+task.spawn(function()
+	while true do
+		if Enabled then
+			local Zone, ZoneName = getClosestZone()
+
+			if Zone then
+				print("Selected:", ZoneName)
+
+				local Humanoid = getHumanoid()
+
+				for _, Position in ipairs(Zone) do
+					if not Enabled then
+						break
+					end
+
+					Humanoid:MoveTo(Position)
+					Humanoid.MoveToFinished:Wait()
+				end
+			end
+		end
+
+		task.wait()
+	end
+end)
+
+--==================================================
+-- TOGGLE
+--==================================================
+
+UIS.InputBegan:Connect(function(Input, Processed)
+	if Processed then
+		return
+	end
+
+	if Input.KeyCode ~= Enum.KeyCode.Equals then
+		return
+	end
+
+	Enabled = not Enabled
+
+	print("Token + Zone Farm:", Enabled and "ON" or "OFF")
+end)
