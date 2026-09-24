@@ -202,5 +202,9 @@ UIS.InputBegan:Connect(function(Input, Processed)
 
 	Enabled = not Enabled
 
+print("Spo0kNet Activated. Press = to autofarm!")
+print("-----")
+print("To use the script, teleport to your field of choice, stand in the middle, press = to toggle the autofarm, and relax.")
+
 	print("Token + Zone Farm:", Enabled and "ON" or "OFF")
 end)
