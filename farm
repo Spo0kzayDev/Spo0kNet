@@ -1,5 +1,6 @@
 --// TOKEN + ZONE LOOP
---// Press "=" to toggle ON/OFF
+--// Press "=" to toggle ZONE MOVEMENT ON/OFF
+--// TOKEN COLLECTION IS ALWAYS ACTIVE
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -113,10 +114,6 @@ end
 --==================================================
 
 local function touchToken(Token)
-	if not Enabled then
-		return
-	end
-
 	local Root = getRoot()
 
 	if Token:IsA("BasePart") then
@@ -140,18 +137,13 @@ end
 
 --==================================================
 -- TOKEN LOOP
+-- ALWAYS ACTIVE
 --==================================================
 
 task.spawn(function()
 	while true do
-		if Enabled then
-			for _, Token in ipairs(Tokens:GetChildren()) do
-				if not Enabled then
-					break
-				end
-
-				task.spawn(touchToken, Token)
-			end
+		for _, Token in ipairs(Tokens:GetChildren()) do
+			task.spawn(touchToken, Token)
 		end
 
 		task.wait(1)
@@ -160,6 +152,7 @@ end)
 
 --==================================================
 -- ZONE MOVEMENT LOOP
+-- TOGGLED WITH "="
 --==================================================
 
 task.spawn(function()
@@ -202,9 +195,11 @@ UIS.InputBegan:Connect(function(Input, Processed)
 
 	Enabled = not Enabled
 
-print("Spo0kNet Activated. Press = to autofarm!")
-print("-----")
-print("To use the script, teleport to your field of choice, stand in the middle, press = to toggle the autofarm, and relax.")
-
-	print("Token + Zone Farm:", Enabled and "ON" or "OFF")
+	print("Spo0kNet Activated. Press = to autofarm!")
+	print("-----")
+	print("Token Collection: ALWAYS ON")
+	print("Zone Movement:", Enabled and "ON" or "OFF")
 end)
+
+print("Spo0kNet Token Collector: ALWAYS ON")
+print("Press = to toggle zone movement.")
