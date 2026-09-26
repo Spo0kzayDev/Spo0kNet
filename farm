@@ -1,334 +1,1092 @@
---// TOKEN + ZONE LOOP
---// Press "=" to toggle ZONE MOVEMENT ON/OFF
---// TOKEN COLLECTION IS ALWAYS ACTIVE
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+
+local Window = Rayfield:CreateWindow({
+    name = "Spo0kNet"
+})
+
+--// =========================
+--// SERVICES
+--// =========================
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local CAS = game:GetService("ContextActionService")
+local TeleportService = game:GetService("TeleportService")
 
 local Player = Players.LocalPlayer
-local Tokens = workspace:WaitForChild("Tokens")
 
-local Enabled = false
+--// =========================
+--// SCRIPT STATE
+--// =========================
 
---==================================================
--- ZONES
---==================================================
+local Unloaded = false
+local Connections = {}
 
-local Zones = {
-	["Zone 1"] = {
-		Vector3.new(-7, 3, -76),
-		Vector3.new(26, 3, -77),
-		Vector3.new(26, 3, -42),
-		Vector3.new(-6, 3, -42)
-	},
+local AutoFarmEnabled = false
+local AutoCollectTokens = false
 
-	["Zone 2"] = {
-		Vector3.new(-139, 19, 37),
-		Vector3.new(-139, 19, 80),
-		Vector3.new(-191, 19, 80),
-		Vector3.new(-190, 19, 41)
-	},
+local CurrentField = "Blueberry"
+local CurrentMethod = "Walking"
 
-	["Zone 3"] = {
-		Vector3.new(-2, 19, -131),
-		Vector3.new(-68, 19, -131),
-		Vector3.new(-67, 19, -169),
-		Vector3.new(-3, 19, -170)
-	},
+local SpinSpeed = 5
+local WalkSpeed = 25
+local BaseWalkSpeed = 16
 
-	["Zone 4"] = {
-		Vector3.new(-310, 35, -411),
-		Vector3.new(-240, 35, -411),
-		Vector3.new(-241, 35, -369),
-		Vector3.new(-307, 35, -370)
-	},
-
-	["Zone 5"] = {
-		Vector3.new(-140, 59, -398),
-		Vector3.new(-141, 59, -455),
-		Vector3.new(-92, 59, -455),
-		Vector3.new(-92, 59, -398)
-	},
-
-	["Zone 6"] = {
-		Vector3.new(-357, 47, 168),
-		Vector3.new(-357, 47, 204),
-		Vector3.new(-401, 47, 204),
-		Vector3.new(-401, 47, 169)
-	},
-
-	["Zone 7"] = {
-	Vector3.new(-309, 20, -558),
-	Vector3.new(-342, 20, -558),
-	Vector3.new(-343, 20, -513),
-	Vector3.new(-313, 20, -513)
-	},
-
-	["Zone 8"] = {
-	Vector3.new(-148, 58, 221),
-	Vector3.new(-110, 58, 221),
-	Vector3.new(-111, 58, 162),
-	Vector3.new(-148, 58, 162)
-	}
-}
-
---==================================================
--- CHARACTER
---==================================================
-
-local function getCharacter()
-	return Player.Character or Player.CharacterAdded:Wait()
+local function AddConnection(Connection)
+    table.insert(Connections, Connection)
+    return Connection
 end
 
-local function getHumanoid()
-	local Character = getCharacter()
-	return Character:WaitForChild("Humanoid")
+local function DisconnectAll()
+    for _, Connection in ipairs(Connections) do
+        pcall(function()
+            Connection:Disconnect()
+        end)
+    end
+
+    table.clear(Connections)
 end
 
-local function getRoot()
-	local Character = getCharacter()
-	return Character:WaitForChild("HumanoidRootPart")
+local FullUnload
+
+--// =========================
+--// CHARACTER
+--// =========================
+
+local function GetCharacter()
+    return Player.Character or Player.CharacterAdded:Wait()
 end
 
---==================================================
--- ZONE FUNCTIONS
---==================================================
+local function GetHumanoid()
+    local Character = GetCharacter()
 
-local function getZoneCenter(Points)
-	local Center = Vector3.zero
-
-	for _, Point in ipairs(Points) do
-		Center += Point
-	end
-
-	return Center / #Points
+    return Character:FindFirstChildOfClass("Humanoid")
+        or Character:WaitForChild("Humanoid")
 end
 
-local function getClosestZone()
-	local Root = getRoot()
+--// =========================
+--// FULL UNLOAD
+--// =========================
 
-	local ClosestZone = nil
-	local ClosestDistance = math.huge
+FullUnload = function()
+    if Unloaded then
+        return
+    end
 
-	for _, Points in pairs(Zones) do
-		local Center = getZoneCenter(Points)
-		local Distance = (Root.Position - Center).Magnitude
+    Unloaded = true
 
-		if Distance < ClosestDistance then
-			ClosestDistance = Distance
-			ClosestZone = Points
-		end
-	end
+    AutoFarmEnabled = false
+    AutoCollectTokens = false
 
-	return ClosestZone
+    DisconnectAll()
+
+    pcall(function()
+        Window:Destroy()
+    end)
+
+    local CoreGui = game:GetService("CoreGui")
+
+    for _, Gui in ipairs(CoreGui:GetChildren()) do
+        local Name = Gui.Name:lower()
+
+        if Name:find("rayfield")
+            or Name:find("spo0knet") then
+
+            pcall(function()
+                Gui:Destroy()
+            end)
+        end
+    end
 end
 
---==================================================
--- TOKEN FUNCTION
---==================================================
+--// =========================
+--// HOME TAB
+--// =========================
 
-local function touchToken(Token)
-	if not Token or not Token.Parent then
-		return
-	end
+local Home = Window:CreateTab({
+    name = "🏠 Home"
+})
 
-	local Root
+--// =========================
+--// PLAYER INFO
+--// =========================
 
-	pcall(function()
-		Root = getRoot()
-	end)
+Home:CreateText({
+    text = "👤 DisplayName: " .. Player.DisplayName
+})
 
-	if not Root or not Root.Parent then
-		return
-	end
+Home:CreateText({
+    text = "🪪 Username: " .. Player.Name
+})
 
-	pcall(function()
-		if Token:IsA("BasePart") then
+Home:CreateDivider()
 
-			firetouchinterest(Root, Token, 0)
-			task.wait()
-			firetouchinterest(Root, Token, 1)
+--// =========================
+--// LEADERSTATS
+--// =========================
 
-		elseif Token:IsA("Model") then
+local Leaderstats = Player:WaitForChild("leaderstats")
 
-			local Part = Token.PrimaryPart
-				or Token:FindFirstChildWhichIsA("BasePart")
+local Cash = Leaderstats:WaitForChild("Cash")
+local Crops = Leaderstats:WaitForChild("Crops")
 
-			if Part then
-				firetouchinterest(Root, Part, 0)
-				task.wait()
-				firetouchinterest(Root, Part, 1)
-			end
-		end
-	end)
+--// =========================
+--// CASH
+--// =========================
+
+local CashText = Home:CreateText({
+    text = "💰 Cash: " .. tostring(Cash.Value)
+})
+
+--// =========================
+--// CROPS
+--// =========================
+
+local CropsText = Home:CreateText({
+    text = "🌾 Crops: " .. tostring(Crops.Value)
+})
+
+--// =========================
+--// UPDATE CASH
+--// =========================
+
+local function UpdateCash()
+    if Unloaded then
+        return
+    end
+
+    CashText:Set(
+        "💰 Cash: " .. tostring(Cash.Value)
+    )
 end
 
---==================================================
--- TOKEN LOOP
--- ALWAYS ACTIVE
---==================================================
+--// =========================
+--// UPDATE CROPS
+--// =========================
+
+local function UpdateCrops()
+    if Unloaded then
+        return
+    end
+
+    CropsText:Set(
+        "🌾 Crops: " .. tostring(Crops.Value)
+    )
+end
+
+--// =========================
+--// VALUE CONNECTIONS
+--// =========================
+
+AddConnection(
+    Cash:GetPropertyChangedSignal("Value"):Connect(function()
+        UpdateCash()
+    end)
+)
+
+AddConnection(
+    Crops:GetPropertyChangedSignal("Value"):Connect(function()
+        UpdateCrops()
+    end)
+)
+
+UpdateCash()
+UpdateCrops()
+
+Home:CreateDivider()
+
+--// =========================
+--// SERVER CONTROLS
+--// =========================
+
+Home:CreateButton({
+    name = "🔄 Rejoin Server",
+
+    callback = function()
+        if Unloaded then
+            return
+        end
+
+        FullUnload()
+
+        task.wait(0.5)
+
+        pcall(function()
+            TeleportService:TeleportToPlaceInstance(
+                game.PlaceId,
+                game.JobId,
+                Player
+            )
+        end)
+    end
+})
+
+--// =========================
+--// AUTOFARM TAB
+--// =========================
+
+local Autofarm = Window:CreateTab({
+    name = "🌾 Autofarm"
+})
+
+--// =========================
+--// AUTOFARM TOGGLE
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "⚡ Autofarm",
+    flag = "Autofarm",
+
+    callback = function(Value)
+
+        if Value then
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+                BaseWalkSpeed = Humanoid.WalkSpeed
+            end
+
+            AutoFarmEnabled = true
+
+            -- Your existing autofarm functions
+            if StartItemEquip then
+                StartItemEquip()
+            end
+
+            if StartAutofarm then
+                StartAutofarm()
+            end
+
+        else
+
+            AutoFarmEnabled = false
+
+            if StopItemEquip then
+                StopItemEquip()
+            end
+
+            if StopAutofarm then
+                StopAutofarm()
+            end
+        end
+    end
+})
+
+--// =========================
+--// AUTO COLLECT TOKENS
+--// =========================
+
+local TokensFolder = workspace:WaitForChild("Tokens")
+
+Autofarm:CreateToggle({
+    name = "🧲 Auto Collect Tokens",
+    flag = "AutoCollectTokens",
+
+    callback = function(Value)
+        AutoCollectTokens = Value
+    end
+})
 
 task.spawn(function()
-	while true do
+    while not Unloaded do
+        task.wait(1)
 
-		for _, Token in ipairs(Tokens:GetChildren()) do
-			task.spawn(touchToken, Token)
-		end
+        if AutoCollectTokens then
 
-		task.wait(1)
-	end
+            local Character = Player.Character
+
+            if Character then
+
+                local HRP =
+                    Character:FindFirstChild("HumanoidRootPart")
+
+                if HRP then
+
+                    for _, Token in ipairs(
+                        TokensFolder:GetChildren()
+                    ) do
+
+                        if Token:IsA("BasePart") then
+
+                            pcall(function()
+                                firetouchinterest(
+                                    HRP,
+                                    Token,
+                                    0
+                                )
+
+                                firetouchinterest(
+                                    HRP,
+                                    Token,
+                                    1
+                                )
+                            end)
+
+                        elseif Token:IsA("Model") then
+
+                            local Part =
+                                Token.PrimaryPart
+                                or Token:FindFirstChildWhichIsA(
+                                    "BasePart",
+                                    true
+                                )
+
+                            if Part then
+
+                                pcall(function()
+                                    firetouchinterest(
+                                        HRP,
+                                        Part,
+                                        0
+                                    )
+
+                                    firetouchinterest(
+                                        HRP,
+                                        Part,
+                                        1
+                                    )
+                                end)
+
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end)
+Autofarm:CreateDivider()
 
---==================================================
--- BLOCK MOVEMENT KEYS
---==================================================
+--// =========================
+--// FIELD SELECTOR
+--// =========================
 
-local MovementKeys = {
-	Enum.KeyCode.W,
-	Enum.KeyCode.A,
-	Enum.KeyCode.S,
-	Enum.KeyCode.D,
+local Fields = {
 
-	Enum.KeyCode.Up,
-	Enum.KeyCode.Down,
-	Enum.KeyCode.Left,
-	Enum.KeyCode.Right
+    Blueberry = {
+        TP = Vector3.new(11, 3, -60),
+
+        Points = {
+            Vector3.new(26, 3, -46),
+            Vector3.new(-3, 3, -46),
+            Vector3.new(-3, 3, -75),
+            Vector3.new(24, 3, -75)
+        }
+    },
+
+    Grape = {
+        TP = Vector3.new(-165, 19, 60),
+
+        Points = {
+            Vector3.new(-187, 19, 77),
+            Vector3.new(-187, 19, 42),
+            Vector3.new(-144, 19, 42),
+            Vector3.new(-144, 19, 77)
+        }
+    },
+
+    Sunflower = {
+        TP = Vector3.new(-36, 19, -148),
+
+        Points = {
+            Vector3.new(-9, 19, -136),
+            Vector3.new(-61, 19, -135),
+            Vector3.new(-61, 19, -167),
+            Vector3.new(-10, 19, -167)
+        }
+    },
+
+    Candy = {
+        TP = Vector3.new(-275, 35, -390),
+
+        Points = {
+            Vector3.new(-304, 35, -404),
+            Vector3.new(-247, 35, -405),
+            Vector3.new(-246, 35, -372),
+            Vector3.new(-306, 35, -371)
+        }
+    },
+
+    Star = {
+        TP = Vector3.new(-120, 59, -426),
+
+        Points = {
+            Vector3.new(-140, 59, -399),
+            Vector3.new(-141, 59, -458),
+            Vector3.new(-96, 59, -458),
+            Vector3.new(-95, 59, -400)
+        }
+    },
+
+    Forest = {
+        TP = Vector3.new(-380, 47, 187),
+
+        Points = {
+            Vector3.new(-362, 47, 173),
+            Vector3.new(-362, 47, 201),
+            Vector3.new(-397, 47, 201),
+            Vector3.new(-397, 47, 172)
+        }
+    },
+
+    Strawberry = {
+        TP = Vector3.new(-328, 20, -532),
+
+        Points = {
+            Vector3.new(-341, 20, -513),
+            Vector3.new(-341, 20, -555),
+            Vector3.new(-312, 20, -556),
+            Vector3.new(-311, 20, -512)
+        }
+    },
+
+    Ice = {
+        TP = Vector3.new(-130, 58, 188),
+
+        Points = {
+            Vector3.new(-113, 58, 166),
+            Vector3.new(-113, 58, 212),
+            Vector3.new(-150, 58, 212),
+            Vector3.new(-150, 58, 166)
+        }
+    },
+
+    Mushroom = {
+        TP = Vector3.new(1274, 19, -49),
+
+        Points = {
+            Vector3.new(1288, 19, -75),
+            Vector3.new(1289, 19, -23),
+            Vector3.new(1250, 19, -22),
+            Vector3.new(1249, 19, -79)
+        }
+    },
+
+    Uranium = {
+        TP = Vector3.new(1524, 52, -693),
+
+        Points = {
+            Vector3.new(1546, 52, -717),
+            Vector3.new(1547, 52, -670),
+            Vector3.new(1497, 52, -670),
+            Vector3.new(1496, 52, -717)
+        }
+    },
+
+    Meteor = {
+        TP = Vector3.new(1907, 70, -416),
+
+        Points = {
+            Vector3.new(1929, 70, -391),
+            Vector3.new(1878, 70, -399),
+            Vector3.new(1885, 70, -437),
+            Vector3.new(1936, 70, -430)
+        }
+    }
 }
 
-local function BlockMovement()
-	if Enabled then
-		return Enum.ContextActionResult.Sink
-	end
+--// =========================
+--// AUTOFARM MOVEMENT
+--// =========================
 
-	return Enum.ContextActionResult.Pass
+local SpinConnection = nil
+
+local function StopSpinning()
+
+    if SpinConnection then
+
+        pcall(function()
+            SpinConnection:Disconnect()
+        end)
+
+        SpinConnection = nil
+    end
 end
 
-local function SetMovementBlocked(State)
-	if State then
+local function StartSpinning()
 
-		CAS:BindAction(
-			"Spo0kNet_BlockMovement",
-			BlockMovement,
-			false,
-			table.unpack(MovementKeys)
-		)
+    StopSpinning()
 
-	else
+    SpinConnection =
+        game:GetService("RunService").RenderStepped:Connect(
+        function()
 
-		CAS:UnbindAction("Spo0kNet_BlockMovement")
+            if not AutoFarmEnabled then
+                return
+            end
 
-	end
+            local Character = Player.Character
+
+            if not Character then
+                return
+            end
+
+            local HRP =
+                Character:FindFirstChild("HumanoidRootPart")
+
+            if not HRP then
+                return
+            end
+
+            HRP.CFrame =
+                HRP.CFrame
+                * CFrame.Angles(
+                    0,
+                    math.rad(SpinSpeed * 10),
+                    0
+                )
+        end
+    )
+
+    AddConnection(SpinConnection)
 end
 
---==================================================
--- MOVE TO POINT
---==================================================
+local function StartWalking()
 
-local function MoveToPoint(Position)
-	if not Enabled then
-		return false
-	end
+    task.spawn(function()
 
-	local Humanoid
+        while AutoFarmEnabled
+            and not Unloaded
+            and CurrentMethod == "Walking" do
 
-	pcall(function()
-		Humanoid = getHumanoid()
-	end)
+            local Field = Fields[CurrentField]
 
-	if not Humanoid or Humanoid.Health <= 0 then
-		return false
-	end
+            if not Field then
+                break
+            end
 
-	Humanoid:MoveTo(Position)
+            local Character = Player.Character
 
-	-- Don't wait forever for MoveToFinished
-	local StartTime = tick()
-	local Timeout = 3
+            if not Character then
+                task.wait()
+                continue
+            end
 
-	while Enabled and Humanoid.Health > 0 do
+            local Humanoid =
+                Character:FindFirstChildOfClass("Humanoid")
 
-		local Root = getRoot()
+            if not Humanoid then
+                task.wait()
+                continue
+            end
 
-		if (Root.Position - Position).Magnitude <= 4 then
-			return true
-		end
+            Humanoid.WalkSpeed = WalkSpeed
 
-		if tick() - StartTime >= Timeout then
-			return true
-		end
+            for _, Point in ipairs(Field.Points) do
 
-		task.wait(0.1)
-	end
+                if not AutoFarmEnabled
+                    or Unloaded
+                    or CurrentMethod ~= "Walking" then
+                    break
+                end
 
-	return false
+                Humanoid:MoveTo(Point)
+                Humanoid.MoveToFinished:Wait()
+            end
+        end
+    end)
 end
 
---==================================================
--- ZONE MOVEMENT LOOP
---==================================================
+local function StartAutofarm()
 
-task.spawn(function()
+    if not AutoFarmEnabled then
+        return
+    end
 
-	while true do
+    local Field = Fields[CurrentField]
 
-		if Enabled then
+    if not Field then
+        return
+    end
 
-			local Zone = getClosestZone()
+    local Character = GetCharacter()
 
-			if Zone then
+    if Character then
+        Character:PivotTo(
+            CFrame.new(Field.TP)
+        )
+    end
 
-				for _, Position in ipairs(Zone) do
+    task.wait(0.2)
 
-					if not Enabled then
-						break
-					end
+    if CurrentMethod == "Walking" then
 
-					MoveToPoint(Position)
+        StopSpinning()
+        StartWalking()
 
-					task.wait(0.1)
-				end
-			end
+    elseif CurrentMethod == "Spin" then
 
-		end
+        local Humanoid = GetHumanoid()
 
-		task.wait(0.1)
-	end
+        if Humanoid then
+            Humanoid.WalkSpeed = BaseWalkSpeed
+        end
 
-end)
+        StartSpinning()
+    end
+end
 
---==================================================
--- TOGGLE
---==================================================
+local function StopAutofarm()
 
-UIS.InputBegan:Connect(function(Input, Processed)
+    AutoFarmEnabled = false
 
-	if Processed then
-		return
-	end
+    StopSpinning()
 
-	if Input.KeyCode ~= Enum.KeyCode.Equals then
-		return
-	end
+    local Humanoid = GetHumanoid()
 
-	Enabled = not Enabled
+    if Humanoid then
 
-	SetMovementBlocked(Enabled)
+        Humanoid:Move(
+            Vector3.zero,
+            false
+        )
 
-	print("Zone Movement:", Enabled and "ON" or "OFF")
+        Humanoid.WalkSpeed =
+            BaseWalkSpeed
+    end
+end
 
-end)
+--// =========================
+--// ITEM EQUIP
+--// =========================
 
---==================================================
--- CLEAN UP ON CHARACTER RESPAWN
---==================================================
+local EquipConnection = nil
 
-Player.CharacterAdded:Connect(function()
+local function StartItemEquip()
 
-	task.wait(1)
+    if EquipConnection then
+        return
+    end
 
-	if Enabled then
-		SetMovementBlocked(true)
-	end
+    EquipConnection =
+        game:GetService("RunService").Heartbeat:Connect(
+        function()
 
-end)
+            if not AutoFarmEnabled then
+                return
+            end
+
+            local Character = Player.Character
+
+            if not Character then
+                return
+            end
+
+            local Humanoid =
+                Character:FindFirstChildOfClass("Humanoid")
+
+            if not Humanoid then
+                return
+            end
+
+            if EquippedItem
+                and EquippedItem.Parent ~= Character then
+
+                pcall(function()
+                    Humanoid:EquipTool(EquippedItem)
+                end)
+            end
+        end
+    )
+
+    AddConnection(EquipConnection)
+end
+
+local function StopItemEquip()
+
+    if EquipConnection then
+
+        pcall(function()
+            EquipConnection:Disconnect()
+        end)
+
+        EquipConnection = nil
+    end
+end
+
+--// =========================
+--// FIELD DROPDOWN
+--// =========================
+
+Autofarm:CreateDropdown({
+    name = "🌾 Field",
+
+    options = {
+        "Blueberry",
+        "Grape",
+        "Sunflower",
+        "Candy",
+        "Star",
+        "Forest",
+        "Strawberry",
+        "Ice",
+        "Mushroom",
+        "Uranium",
+        "Meteor"
+    },
+
+    multiSelect = false,
+    value = "Blueberry",
+    flag = "Field",
+
+    callback = function(Field)
+
+        CurrentField = Field
+
+        if AutoFarmEnabled
+            and Fields[Field] then
+
+            AutoFarmEnabled = false
+
+            StopSpinning()
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+                Humanoid:Move(
+                    Vector3.zero,
+                    false
+                )
+            end
+
+            AutoFarmEnabled = true
+
+            StartAutofarm()
+        end
+    end
+})
+
+--// =========================
+--// METHOD DROPDOWN
+--// =========================
+
+Autofarm:CreateDropdown({
+    name = "🔄 Method",
+
+    options = {
+        "Walking",
+        "Spin"
+    },
+
+    multiSelect = false,
+    value = "Walking",
+    flag = "Method",
+
+    callback = function(Method)
+
+        CurrentMethod = Method
+
+        if AutoFarmEnabled then
+
+            AutoFarmEnabled = false
+
+            StopSpinning()
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+
+                Humanoid:Move(
+                    Vector3.zero,
+                    false
+                )
+
+                if Method == "Spin" then
+                    Humanoid.WalkSpeed =
+                        BaseWalkSpeed
+                end
+            end
+
+            AutoFarmEnabled = true
+
+            StartAutofarm()
+        end
+    end
+})
+
+--// =========================
+--// SPIN SPEED
+--// =========================
+
+Autofarm:CreateSlider({
+    name = "🌀 Spin Speed",
+
+    range = {1, 10},
+    increment = 1,
+    value = 5,
+    flag = "SpinSpeed",
+
+    callback = function(Value)
+        SpinSpeed = Value
+    end
+})
+
+--// =========================
+--// WALK SPEED
+--// =========================
+
+Autofarm:CreateSlider({
+    name = "🏃 Walk Speed",
+
+    range = {25, 75},
+    increment = 1,
+    value = 25,
+    flag = "WalkSpeed",
+
+    callback = function(Value)
+
+        WalkSpeed = Value
+
+        if AutoFarmEnabled
+            and CurrentMethod == "Walking" then
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+                Humanoid.WalkSpeed = WalkSpeed
+            end
+        end
+    end
+})
+
+--// =========================
+--// TELEPORT TAB
+--// =========================
+
+local Teleport = Window:CreateTab({
+    name = "🧭 Teleport"
+})
+
+local function TeleportTo(Position)
+
+    local Character =
+        Player.Character or
+        Player.CharacterAdded:Wait()
+
+    Character:PivotTo(
+        CFrame.new(Position)
+    )
+end
+
+--// =========================
+--// MECHANICS
+--// =========================
+
+Teleport:CreateText({
+    text = "||⚙️ Mechanics ⚙️||"
+})
+
+Teleport:CreateButton({
+    name = "🔨 Crafter 1",
+    callback = function()
+        TeleportTo(Vector3.new(-90, 21, -215))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔨 Crafter 2",
+    callback = function()
+        TeleportTo(Vector3.new(1348, 21, 18))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌈 Chroma 1",
+    callback = function()
+        TeleportTo(Vector3.new(-110, 60, 319))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌈 Chroma 2",
+    callback = function()
+        TeleportTo(Vector3.new(1273, 21, 39))
+    end
+})
+
+Teleport:CreateButton({
+    name = "☢️ Reactor",
+    callback = function()
+        TeleportTo(Vector3.new(1334, -5, -610))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔄 Rebirth 1",
+    callback = function()
+        TeleportTo(Vector3.new(-11, 60, 270))
+    end
+})
+
+--// =========================
+--// SHOPS
+--// =========================
+
+Teleport:CreateDivider()
+
+Teleport:CreateText({
+    text = "||🛒 Shops 🛒||"
+})
+
+Teleport:CreateButton({
+    name = "🫐 Blueberry Shop",
+    callback = function()
+        TeleportTo(Vector3.new(74, 6, 54))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍇 Grape Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-195, 22, -42))
+    end
+})
+
+Teleport:CreateButton({
+    name = "💎 Crystal Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-397, 5, -41))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍬 Candy Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-357, 37, -384))
+    end
+})
+
+Teleport:CreateButton({
+    name = "⭐ Star Shop",
+    callback = function()
+        TeleportTo(Vector3.new(49, 80, -372))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌲 Forest Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-390, -1, 207))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍓 Strawberry Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-223, 23, -490))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🧊 Ice Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-55, 61, 313))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍄 Mushroom Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1224, 27, -138))
+    end
+})
+
+Teleport:CreateButton({
+    name = "☢️ Uranium Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1513, 24, -712))
+    end
+})
+
+Teleport:CreateButton({
+    name = "☄️ Meteor Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1815, 57, -547))
+    end
+})
+
+--// =========================
+--// FIELDS
+--// =========================
+
+Teleport:CreateDivider()
+
+Teleport:CreateText({
+    text = "||🌾 Fields 🌾||"
+})
+
+Teleport:CreateButton({
+    name = "🫐 Blueberry Field",
+    callback = function()
+        TeleportTo(Vector3.new(11, 3, -60))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍇 Grape Field",
+    callback = function()
+        TeleportTo(Vector3.new(-165, 19, 60))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌻 Sunflower Field",
+    callback = function()
+        TeleportTo(Vector3.new(-36, 19, -148))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍬 Candy Field",
+    callback = function()
+        TeleportTo(Vector3.new(-275, 35, -390))
+    end
+})
+
+Teleport:CreateButton({
+    name = "⭐ Star Field",
+    callback = function()
+        TeleportTo(Vector3.new(-120, 59, -426))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌲 Forest Field",
+    callback = function()
+        TeleportTo(Vector3.new(-380, 47, 187))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍓 Strawberry Field",
+    callback = function()
+        TeleportTo(Vector3.new(-328, 20, -532))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🧊 Ice Field",
+    callback = function()
+        TeleportTo(Vector3.new(-130, 58, 188))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍄 Mushroom Field",
+    callback = function()
+        TeleportTo(Vector3.new(1274, 19, -49))
+    end
+})
+
+Teleport:CreateButton({
+    name = "☢️ Uranium Field",
+    callback = function()
+        TeleportTo(Vector3.new(1524, 52, -693))
+    end
+})
+
+Teleport:CreateButton({
+    name = "☄️ Meteor Field",
+    callback = function()
+        TeleportTo(Vector3.new(1907, 70, -416))
+    end
+})
