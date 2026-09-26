@@ -36,6 +36,19 @@ local SpinConnection = nil
 
 local MovementLocked = false
 
+local AutoMineEnabled = false
+
+local AutoUpgradeDamage = false
+local AutoUpgradeCrop = false
+
+local MiningPriorities = {
+    Copper = 1,
+    Iron = 1,
+    Gold = 1,
+    Diamond = 1,
+    ["Red Beryl"] = 1
+}
+
 --// =========================
 --// CHARACTER
 --// =========================
@@ -52,6 +65,246 @@ end
 local function GetHRP()
     local Character = GetCharacter()
     return Character:FindFirstChild("HumanoidRootPart")
+end
+
+--// =========================
+--// MINING
+--// =========================
+
+local MiningStartPosition = Vector3.new(2066, 0, 846)
+
+local MiningOres = {
+    "Copper",
+    "Iron",
+    "Gold",
+    "Diamond",
+    "Red Beryl"
+}
+
+local function GetOrePosition(Ore)
+    if Ore:IsA("BasePart") then
+        return Ore.Position
+    end
+
+    if Ore:IsA("Model") then
+        return Ore:GetPivot().Position
+    end
+
+    local Part = Ore:FindFirstChildWhichIsA(
+        "BasePart",
+        true
+    )
+
+    if Part then
+        return Part.Position
+    end
+
+    return nil
+end
+
+local function GetOreType(Ore)
+    local Name = Ore.Name
+
+    for _, OreName in ipairs(MiningOres) do
+        if string.lower(Name) == string.lower(OreName) then
+            return OreName
+        end
+    end
+
+    return nil
+end
+
+local function GetHighestPriorityOre()
+    local MyOres = workspace:FindFirstChild("MyOres")
+
+    if not MyOres then
+        return nil
+    end
+
+    local BestOre = nil
+    local BestPriority = -math.huge
+
+    for _, Ore in ipairs(MyOres:GetChildren()) do
+        local OreType = GetOreType(Ore)
+
+        if OreType then
+            local Position = GetOrePosition(Ore)
+
+            if Position then
+                local Priority = MiningPriorities[OreType] or 1
+
+                if Priority > BestPriority then
+                    BestPriority = Priority
+                    BestOre = Ore
+                end
+            end
+        end
+    end
+
+    return BestOre
+end
+
+local function EquipMiningItem()
+    local Character = GetCharacter()
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    local Backpack = Player:FindFirstChildOfClass("Backpack")
+
+    if not Humanoid or not Backpack then
+        return nil
+    end
+
+    local Tool = Backpack:FindFirstChildWhichIsA("Tool")
+
+    if not Tool then
+        return nil
+    end
+
+    Humanoid:EquipTool(Tool)
+
+    return Tool
+end
+
+local function StartMining()
+    task.spawn(function()
+        local Character = GetCharacter()
+
+        Character:PivotTo(CFrame.new(MiningStartPosition))
+
+        while AutoMineEnabled do
+
+            --// =========================
+            --// DAMAGE UPGRADE
+            --// =========================
+
+            if AutoUpgradeDamage then
+                local Button =
+                    workspace
+                    :WaitForChild("UpgradePanels")
+                    :WaitForChild("OreDamageMulti1")
+                    :WaitForChild("SurfaceGui")
+                    :WaitForChild("Frame")
+                    :WaitForChild("PurchaseButton")
+
+                if Button.BackgroundColor3 == Color3.fromRGB(0, 206, 7) then
+
+                    -- Pause mining
+                    AutoMineEnabled = false
+
+                    Character = GetCharacter()
+
+                    -- Go to Damage upgrade
+                    Character:PivotTo(
+                        CFrame.new(2045, 1, 751)
+                    )
+
+                    task.wait(0.2)
+
+                    -- Purchase Damage upgrade
+                    game:GetService("ReplicatedStorage")
+                        .Remotes
+                        .Upgrade
+                        :FireServer("OreDamageMulti1")
+
+                    task.wait(0.5)
+
+                    -- Resume mining
+                    AutoMineEnabled = true
+
+                    continue
+                end
+            end
+
+            --// =========================
+            --// CROP UPGRADE
+            --// =========================
+
+            if AutoUpgradeCrop then
+                local Button =
+                    workspace
+                    :WaitForChild("UpgradePanels")
+                    :WaitForChild("MuscleMultiUpgrade12")
+                    :WaitForChild("SurfaceGui")
+                    :WaitForChild("Frame")
+                    :WaitForChild("PurchaseButton")
+
+                if Button.BackgroundColor3 == Color3.fromRGB(0, 206, 7) then
+
+                    -- Pause mining
+                    AutoMineEnabled = false
+
+                    Character = GetCharacter()
+
+                    -- Go to Crop upgrade
+                    Character:PivotTo(
+                        CFrame.new(2052, 1, 778)
+                    )
+
+                    task.wait(0.2)
+
+                    -- Purchase Crop upgrade
+                    game:GetService("ReplicatedStorage")
+                        .Remotes
+                        .Upgrade
+                        :FireServer("MuscleMultiUpgrade12")
+
+                    task.wait(0.5)
+
+                    -- Resume mining
+                    AutoMineEnabled = true
+
+                    continue
+                end
+            end
+
+            --// =========================
+            --// FIND HIGHEST PRIORITY ORE
+            --// =========================
+
+            local Ore = GetHighestPriorityOre()
+
+            if not Ore then
+                task.wait(0.25)
+                continue
+            end
+
+            if not Ore.Parent then
+                task.wait()
+                continue
+            end
+
+            --// =========================
+            --// TELEPORT TO ORE
+            --// =========================
+
+            local Position = GetOrePosition(Ore)
+
+            if Position then
+
+                Character = GetCharacter()
+
+                Character:PivotTo(
+                    CFrame.new(Position)
+                )
+
+                task.wait(0.1)
+
+                -- Equip mining tool
+                EquipMiningItem()
+
+                -- Wait for ore to disappear
+                while AutoMineEnabled and Ore.Parent do
+                    task.wait(0.1)
+                end
+
+            else
+                task.wait(0.1)
+            end
+        end
+    end)
+end
+
+local function StopMining()
+    AutoMineEnabled = false
 end
 
 --// =========================
@@ -563,12 +816,124 @@ Home:CreateButton({
 })
 
 --// =========================
+--// AUTO UPGRADES
+--// =========================
+
+local function ActivateUpgradeButton(Button)
+    if not Button then
+        return false
+    end
+
+    local Success = pcall(function()
+        firesignal(Button.MouseButton1Click)
+    end)
+
+    return Success
+end
+
+local function CheckDamageUpgrade()
+    if not AutoUpgradeDamage then
+        return false
+    end
+
+    local Button =
+        workspace
+        :WaitForChild("UpgradePanels")
+        :WaitForChild("OreDamageMulti1")
+        :WaitForChild("SurfaceGui")
+        :WaitForChild("Frame")
+        :WaitForChild("PurchaseButton")
+
+    local Color = Button.BackgroundColor3
+
+    -- Red = unavailable, continue mining
+    if Color == Color3.fromRGB(177, 0, 0) then
+        return false
+    end
+
+    -- Green = purchasable
+    if Color == Color3.fromRGB(0, 206, 7) then
+
+        -- Pause mining
+        AutoMineEnabled = false
+
+        local Character = GetCharacter()
+
+        Character:PivotTo(
+            CFrame.new(2045, 1, 751)
+        )
+
+        task.wait(0.15)
+
+        ActivateUpgradeButton(Button)
+
+        task.wait(0.25)
+
+        AutoMineEnabled = true
+
+        return true
+    end
+
+    return false
+end
+
+local function CheckCropUpgrade()
+    if not AutoUpgradeCrop then
+        return false
+    end
+
+    local Button =
+        workspace
+        :WaitForChild("UpgradePanels")
+        :WaitForChild("MuscleMultiUpgrade12")
+        :WaitForChild("SurfaceGui")
+        :WaitForChild("Frame")
+        :WaitForChild("PurchaseButton")
+
+    local Color = Button.BackgroundColor3
+
+    -- Red = unavailable, continue mining
+    if Color == Color3.fromRGB(177, 0, 0) then
+        return false
+    end
+
+    -- Green = purchasable
+    if Color == Color3.fromRGB(0, 206, 7) then
+
+        -- Pause mining
+        AutoMineEnabled = false
+
+        local Character = GetCharacter()
+
+        Character:PivotTo(
+            CFrame.new(2052, 1, 778)
+        )
+
+        task.wait(0.15)
+
+        ActivateUpgradeButton(Button)
+
+        task.wait(0.25)
+
+        AutoMineEnabled = true
+
+        return true
+    end
+
+    return false
+end
+
+--// =========================
 --// AUTOFARM TAB
 --// =========================
 
 local Autofarm = Window:CreateTab({
     name = "🌾 Autofarm"
 })
+
+--// =========================
+--// AUTOFARM
+--// =========================
 
 Autofarm:CreateToggle({
     name = "⚡ Autofarm",
@@ -577,6 +942,12 @@ Autofarm:CreateToggle({
     callback = function(value)
 
         if value then
+
+            -- Disable Auto Mine
+            if AutoMineEnabled then
+                StopMining()
+                AutoMineEnabled = false
+            end
 
             local Humanoid = GetHumanoid()
 
@@ -593,6 +964,37 @@ Autofarm:CreateToggle({
 
             StopItemEquip()
             StopAutofarm()
+
+        end
+    end
+})
+
+--// =========================
+--// AUTO MINE
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "⛏️ Auto Mine",
+    flag = "AutoMine",
+
+    callback = function(value)
+
+        if value then
+
+            -- Disable Autofarm
+            if AutoFarmEnabled then
+                StopItemEquip()
+                StopAutofarm()
+                AutoFarmEnabled = false
+            end
+
+            AutoMineEnabled = true
+
+            StartMining()
+
+        else
+
+            StopMining()
 
         end
     end
@@ -618,6 +1020,7 @@ task.spawn(function()
         if AutoCollectTokens then
 
             local Character = Player.Character
+
             local HRP =
                 Character
                 and Character:FindFirstChild("HumanoidRootPart")
@@ -676,10 +1079,14 @@ task.spawn(function()
     end
 end)
 
+--// =========================
+--// DIVIDER
+--// =========================
+
 Autofarm:CreateDivider()
 
 --// =========================
---// FIELD SELECTOR
+--// FIELD
 --// =========================
 
 Autofarm:CreateDropdown({
@@ -728,7 +1135,7 @@ Autofarm:CreateDropdown({
 })
 
 --// =========================
---// METHOD SELECTOR
+--// METHOD
 --// =========================
 
 Autofarm:CreateDropdown({
@@ -756,10 +1163,15 @@ Autofarm:CreateDropdown({
             local Humanoid = GetHumanoid()
 
             if Humanoid then
-                Humanoid:Move(Vector3.zero, false)
+
+                Humanoid:Move(
+                    Vector3.zero,
+                    false
+                )
 
                 if method == "Spin" then
-                    Humanoid.WalkSpeed = BaseWalkSpeed
+                    Humanoid.WalkSpeed =
+                        BaseWalkSpeed
                 end
             end
 
@@ -809,9 +1221,107 @@ Autofarm:CreateSlider({
             local Humanoid = GetHumanoid()
 
             if Humanoid then
-                Humanoid.WalkSpeed = WalkSpeed
+                Humanoid.WalkSpeed =
+                    WalkSpeed
             end
         end
+    end
+})
+
+--// =========================
+--// DIVIDER
+--// =========================
+
+Autofarm:CreateDivider()
+
+--// =========================
+--// AUTO UPGRADES
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "⚔️ Auto Upgrade Damage",
+    flag = "AutoUpgradeDamage",
+
+    callback = function(value)
+        AutoUpgradeDamage = value
+    end
+})
+
+Autofarm:CreateToggle({
+    name = "🌾 Auto Upgrade Crop",
+    flag = "AutoUpgradeCrop",
+
+    callback = function(value)
+        AutoUpgradeCrop = value
+    end
+})
+
+--// =========================
+--// MINING PRIORITIES
+--// =========================
+
+Autofarm:CreateSlider({
+    name = "🟤 Copper Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "CopperPriority",
+
+    callback = function(value)
+        MiningPriorities.Copper = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "⚙️ Iron Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "IronPriority",
+
+    callback = function(value)
+        MiningPriorities.Iron = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "🟡 Gold Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "GoldPriority",
+
+    callback = function(value)
+        MiningPriorities.Gold = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "💎 Diamond Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "DiamondPriority",
+
+    callback = function(value)
+        MiningPriorities.Diamond = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "🔴 Red Beryl Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "RedBerylPriority",
+
+    callback = function(value)
+        MiningPriorities["Red Beryl"] = value
     end
 })
 
