@@ -167,6 +167,16 @@ local Fields = {
             Vector3.new(1885, 70, -437),
             Vector3.new(1936, 70, -430)
         }
+    },
+
+    Fossil = {
+        TP = Vector3.new(1704, 100, 67),
+        Points = {
+            Vector3.new(1682, 100, 82),
+            Vector3.new(1690, 100, 41),
+            Vector3.new(1728, 100, 49),
+            Vector3.new(1721, 100, 85)
+        }
     }
 }
 
@@ -560,10 +570,6 @@ local Autofarm = Window:CreateTab({
     name = "🌾 Autofarm"
 })
 
---// =========================
---// AUTOFARM TOGGLE
---// =========================
-
 Autofarm:CreateToggle({
     name = "⚡ Autofarm",
     flag = "Autofarm",
@@ -606,36 +612,62 @@ Autofarm:CreateToggle({
 })
 
 task.spawn(function()
+
     while true do
+
         if AutoCollectTokens then
+
             local Character = Player.Character
-            local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
-            local Tokens = workspace:FindFirstChild("Tokens")
+            local HRP =
+                Character
+                and Character:FindFirstChild("HumanoidRootPart")
+
+            local Tokens =
+                workspace:FindFirstChild("Tokens")
 
             if HRP and Tokens then
-                for _, Token in ipairs(Tokens:GetDescendants()) do
-                    if not AutoCollectTokens then
-                        break
-                    end
+
+                local TokenParts = {}
+
+                for _, Token in ipairs(
+                    Tokens:GetDescendants()
+                ) do
 
                     if Token:IsA("BasePart") then
-                        pcall(function()
-                            firetouchinterest(HRP, Token, 0)
-                        end)
+                        table.insert(TokenParts, Token)
                     end
                 end
 
-                -- Release all touches after every token has been hit
-                for _, Token in ipairs(Tokens:GetDescendants()) do
+                -- Touch every token
+                for _, Token in ipairs(TokenParts) do
+
                     if not AutoCollectTokens then
                         break
                     end
 
-                    if Token:IsA("BasePart") then
-                        pcall(function()
-                            firetouchinterest(HRP, Token, 1)
-                        end)
+                    pcall(function()
+                        firetouchinterest(
+                            HRP,
+                            Token,
+                            0
+                        )
+                    end)
+                end
+
+                -- Release every token
+                for _, Token in ipairs(TokenParts) do
+
+                    if not AutoCollectTokens then
+                        break
                     end
+
+                    pcall(function()
+                        firetouchinterest(
+                            HRP,
+                            Token,
+                            1
+                        )
+                    end)
                 end
             end
         end
@@ -664,7 +696,8 @@ Autofarm:CreateDropdown({
         "Ice",
         "Mushroom",
         "Uranium",
-        "Meteor"
+        "Meteor",
+        "Fossil"
     },
 
     multiSelect = false,
@@ -938,6 +971,13 @@ Teleport:CreateButton({
     end
 })
 
+Teleport:CreateButton({
+    name = "🦴 Fossil Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1888, 70, 22))
+    end
+})
+
 --// =========================
 --// FIELDS
 --// =========================
@@ -1022,5 +1062,12 @@ Teleport:CreateButton({
     name = "☄️ Meteor Field",
     callback = function()
         TeleportTo(Vector3.new(1907, 70, -416))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🦴 Fossil Field",
+    callback = function()
+        TeleportTo(Vector3.new(1704, 100, 67))
     end
 })
