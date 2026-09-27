@@ -755,6 +755,38 @@ local function StopAutofarm()
     end
 end
 
+local AutoSellEnabled = false
+
+local function StartAutoSell()
+    task.spawn(function()
+        while AutoSellEnabled do
+            game:GetService("ReplicatedStorage").Remotes.Sell:FireServer()
+            task.wait(1)
+        end
+    end)
+end
+
+local AutoFarmStartTime = nil
+local AutoMineStartTime = nil
+
+local function FormatDuration(Seconds)
+    Seconds = math.floor(Seconds)
+
+    local Hours = math.floor(Seconds / 3600)
+    Seconds = Seconds % 3600
+
+    local Minutes = math.floor(Seconds / 60)
+    Seconds = Seconds % 60
+
+    if Hours > 0 then
+        return string.format("%dh %dm %ds", Hours, Minutes, Seconds)
+    elseif Minutes > 0 then
+        return string.format("%dm %ds", Minutes, Seconds)
+    else
+        return string.format("%ds", Seconds)
+    end
+end
+
 --// =========================
 --// HOME
 --// =========================
@@ -817,11 +849,38 @@ Home:CreateButton({
     name = "🔄 Rejoin Server",
 
     callback = function()
-        TeleportService:TeleportToPlaceInstance(
-            game.PlaceId,
-            game.JobId,
-            Player
-        )
+
+        Window:Popup({
+            title = "Rejoin Server?",
+            content = "Are you sure you want to rejoin the current server?",
+
+            options = {
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Rejoin",
+                    style = "primary",
+
+                    callback = function()
+
+                        queue_on_teleport([[
+                            loadstring(game:HttpGet(
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/loader.lua"
+                            ))()
+                        ]])
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+                    end
+                }
+            }
+        })
     end
 })
 
@@ -948,15 +1007,23 @@ local Autofarm = Window:CreateTab({
 Autofarm:CreateToggle({
     name = "⚡ Autofarm",
     flag = "Autofarm",
-
     callback = function(value)
-
         if value then
-
-            -- Disable Auto Mine
             if AutoMineEnabled then
                 StopMining()
                 AutoMineEnabled = false
+
+                local Duration = AutoMineStartTime
+                    and FormatDuration(os.clock() - AutoMineStartTime)
+                    or "0s"
+
+                AutoMineStartTime = nil
+
+                Rayfield:Notify({
+                    Title = "Auto Mine Disabled",
+                    Content = "You had Auto Mine active for " .. Duration .. "!",
+                    Duration = 4
+                })
             end
 
             local Humanoid = GetHumanoid()
@@ -966,15 +1033,32 @@ Autofarm:CreateToggle({
             end
 
             AutoFarmEnabled = true
+            AutoFarmStartTime = os.clock()
+
+            Window:Notify({
+            title = "Autofarm Enabled",
+            content = "Autofarm has been enabled!",
+            duration = 3
+            })
 
             StartItemEquip()
             StartAutofarm()
 
         else
+            local Duration = AutoFarmStartTime
+                and FormatDuration(os.clock() - AutoFarmStartTime)
+                or "0s"
+
+            AutoFarmStartTime = nil
 
             StopItemEquip()
             StopAutofarm()
 
+            Window:Notify({
+                Title = "Autofarm Disabled",
+                Content = "You had Autofarm active for " .. Duration .. "!",
+                Duration = 4
+            })
         end
     end
 })
@@ -986,26 +1070,51 @@ Autofarm:CreateToggle({
 Autofarm:CreateToggle({
     name = "⛏️ Auto Mine",
     flag = "AutoMine",
-
     callback = function(value)
-
         if value then
-
-            -- Disable Autofarm
             if AutoFarmEnabled then
+                local Duration = AutoFarmStartTime
+                    and FormatDuration(os.clock() - AutoFarmStartTime)
+                    or "0s"
+
+                AutoFarmStartTime = nil
+
                 StopItemEquip()
                 StopAutofarm()
                 AutoFarmEnabled = false
+
+                Window:Notify({
+                    Title = "Autofarm Disabled",
+                    Content = "You had Autofarm active for " .. Duration .. "!",
+                    Duration = 4
+                })
             end
 
             AutoMineEnabled = true
+            AutoMineStartTime = os.clock()
+
+            Window:Notify({
+                Title = "Auto Mine Enabled",
+                Content = "Auto Mine has been enabled!",
+                Duration = 3
+            })
 
             StartMining()
 
         else
+            local Duration = AutoMineStartTime
+                and FormatDuration(os.clock() - AutoMineStartTime)
+                or "0s"
+
+            AutoMineStartTime = nil
 
             StopMining()
 
+            Window:Notify({
+                Title = "Auto Mine Disabled",
+                Content = "You had Auto Mine active for " .. Duration .. "!",
+                Duration = 4
+            })
         end
     end
 })
@@ -1088,6 +1197,18 @@ task.spawn(function()
         task.wait(1)
     end
 end)
+
+Autofarm:CreateToggle({
+    name = "💰 Auto Sell",
+    flag = "AutoSell",
+    callback = function(value)
+        AutoSellEnabled = value
+
+        if value then
+            StartAutoSell()
+        end
+    end
+})
 
 --// =========================
 --// DIVIDER
