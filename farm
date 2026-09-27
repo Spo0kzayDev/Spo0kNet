@@ -67,6 +67,28 @@ local function GetHRP()
     return Character:FindFirstChild("HumanoidRootPart")
 end
 
+local function Notify(Title, Content, Duration)
+    pcall(function()
+        Window:Notify({
+            title = Title,
+            content = Content,
+            duration = Duration or 3
+        })
+    end)
+end
+
+local function TeleportTo(Position, LocationName)
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+
+    Character:PivotTo(CFrame.new(Position))
+
+    Notify(
+        "Teleported",
+        "Teleported to " .. LocationName .. "!",
+        3
+    )
+end
+
 --// =========================
 --// MINING
 --// =========================
@@ -1049,11 +1071,7 @@ Autofarm:CreateToggle({
 
                 AutoMineStartTime = nil
 
-                Rayfield:Notify({
-                    Title = "Auto Mine Disabled",
-                    Content = "You had Auto Mine active for " .. Duration .. "!",
-                    Duration = 4
-                })
+                Notify("Auto Mine Disabled", "You had Auto Mine active for " .. Duration .. "!", 4)
             end
 
             local Humanoid = GetHumanoid()
@@ -1065,11 +1083,7 @@ Autofarm:CreateToggle({
             AutoFarmEnabled = true
             AutoFarmStartTime = os.clock()
 
-            Window:Notify({
-            title = "Autofarm Enabled",
-            content = "Autofarm has been enabled!",
-            duration = 3
-            })
+            Notify("Autofarm Enabled", "Autofarm has been enabled!", 3)
 
             StartItemEquip()
             StartAutofarm()
@@ -1084,11 +1098,7 @@ Autofarm:CreateToggle({
             StopItemEquip()
             StopAutofarm()
 
-            Window:Notify({
-                Title = "Autofarm Disabled",
-                Content = "You had Autofarm active for " .. Duration .. "!",
-                Duration = 4
-            })
+            Notify("Autofarm Disabled", "You had Autofarm active for " .. Duration .. "!", 3)
         end
     end
 })
@@ -1113,21 +1123,13 @@ Autofarm:CreateToggle({
                 StopAutofarm()
                 AutoFarmEnabled = false
 
-                Window:Notify({
-                    Title = "Autofarm Disabled",
-                    Content = "You had Autofarm active for " .. Duration .. "!",
-                    Duration = 4
-                })
+                Notify("Autofarm Disabled", "Autofarm has been disabled!", 3)
             end
 
             AutoMineEnabled = true
             AutoMineStartTime = os.clock()
 
-            Window:Notify({
-                Title = "Auto Mine Enabled",
-                Content = "Auto Mine has been enabled!",
-                Duration = 3
-            })
+            Notify("Auto Mine Enabled", "Auto Mine has been enabled!", 3)
 
             StartMining()
 
@@ -1140,11 +1142,7 @@ Autofarm:CreateToggle({
 
             StopMining()
 
-            Window:Notify({
-                Title = "Auto Mine Disabled",
-                Content = "You had Auto Mine active for " .. Duration .. "!",
-                Duration = 4
-            })
+            Notify("Auto Mine Disabled", "You had Auto Mine active for " .. Duration .. "!", 4)
         end
     end
 })
@@ -1159,6 +1157,20 @@ Autofarm:CreateToggle({
 
     callback = function(value)
         AutoCollectTokens = value
+
+        if value then
+            Notify(
+                "Auto Collect Tokens Enabled",
+                "Token collection has been enabled!",
+                3
+            )
+        else
+            Notify(
+                "Auto Collect Tokens Disabled",
+                "Token collection has been disabled!",
+                3
+            )
+        end
     end
 })
 
@@ -1235,7 +1247,10 @@ Autofarm:CreateToggle({
         AutoSellEnabled = value
 
         if value then
+            Notify("Auto Sell Enabled", "Auto Sell has been enabled!", 3)
             StartAutoSell()
+        else
+            Notify("Auto Sell Disabled", "Auto Sell has been disabled!", 3)
         end
     end
 })
@@ -1506,6 +1521,14 @@ local function TeleportTo(Position)
     )
 end
 
+local function TeleportNotification(LocationName)
+    Notify(
+        "Teleported",
+        "Teleported to " .. LocationName .. "!",
+        3
+    )
+end
+
 --// =========================
 --// MECHANICS
 --// =========================
@@ -1518,6 +1541,7 @@ Teleport:CreateButton({
     name = "🔨 Crafter 1",
     callback = function()
         TeleportTo(Vector3.new(-90, 21, -215))
+        TeleportNotification("🔨 Crafter 1")
     end
 })
 
@@ -1525,6 +1549,7 @@ Teleport:CreateButton({
     name = "🔨 Crafter 2",
     callback = function()
         TeleportTo(Vector3.new(1348, 21, 18))
+        TeleportNotification("🔨 Crafter 2")
     end
 })
 
@@ -1532,6 +1557,7 @@ Teleport:CreateButton({
     name = "🌈 Chroma 1",
     callback = function()
         TeleportTo(Vector3.new(-110, 60, 319))
+        TeleportNotification("🌈 Chroma 1")
     end
 })
 
@@ -1539,6 +1565,7 @@ Teleport:CreateButton({
     name = "🌈 Chroma 2",
     callback = function()
         TeleportTo(Vector3.new(1273, 21, 39))
+        TeleportNotification("🌈 Chroma 2")
     end
 })
 
@@ -1546,6 +1573,7 @@ Teleport:CreateButton({
     name = "☢️ Reactor",
     callback = function()
         TeleportTo(Vector3.new(1334, -5, -610))
+        TeleportNotification("☢️ Reactor")
     end
 })
 
@@ -1553,6 +1581,7 @@ Teleport:CreateButton({
     name = "🔄 Rebirth 1",
     callback = function()
         TeleportTo(Vector3.new(-11, 60, 270))
+        TeleportNotification("🔄 Rebirth 1")
     end
 })
 
@@ -1560,6 +1589,7 @@ Teleport:CreateButton({
     name = "🔄 Rebirth 2",
     callback = function()
         TeleportTo(Vector3.new(1809, 100, 90))
+        TeleportNotification("🔄 Rebirth 2")
     end
 })
 
@@ -1567,6 +1597,7 @@ Teleport:CreateButton({
     name = "🤖 Dyson Swarm",
     callback = function()
         TeleportTo(Vector3.new(2080, 8, 969))
+        TeleportNotification("🤖 Dyson Swarm")
     end
 })
 
@@ -1574,6 +1605,7 @@ Teleport:CreateButton({
     name = "🛠️ Cyber Anvil",
     callback = function()
         TeleportTo(Vector3.new(2018, 2, 764))
+        TeleportNotification("🛠️ Cyber Anvil")
     end
 })
 
@@ -1591,6 +1623,7 @@ Teleport:CreateButton({
     name = "🫐 Blueberry Shop",
     callback = function()
         TeleportTo(Vector3.new(74, 6, 54))
+        TeleportNotification("🫐 Blueberry Shop")
     end
 })
 
@@ -1598,6 +1631,7 @@ Teleport:CreateButton({
     name = "🍇 Grape Shop",
     callback = function()
         TeleportTo(Vector3.new(-195, 22, -42))
+        TeleportNotification("🍇 Grape Shop")
     end
 })
 
@@ -1605,6 +1639,7 @@ Teleport:CreateButton({
     name = "💎 Crystal Shop",
     callback = function()
         TeleportTo(Vector3.new(-397, 5, -41))
+        TeleportNotification("💎 Crystal Shop")
     end
 })
 
@@ -1612,6 +1647,7 @@ Teleport:CreateButton({
     name = "🍬 Candy Shop",
     callback = function()
         TeleportTo(Vector3.new(-357, 37, -384))
+        TeleportNotification("🍬 Candy Shop")
     end
 })
 
@@ -1619,6 +1655,7 @@ Teleport:CreateButton({
     name = "⭐ Star Shop",
     callback = function()
         TeleportTo(Vector3.new(49, 80, -372))
+        TeleportNotification("⭐ Star Shop")
     end
 })
 
@@ -1626,6 +1663,7 @@ Teleport:CreateButton({
     name = "🌲 Forest Shop",
     callback = function()
         TeleportTo(Vector3.new(-390, -1, 207))
+        TeleportNotification("🌲 Forest Shop")
     end
 })
 
@@ -1633,6 +1671,7 @@ Teleport:CreateButton({
     name = "🍓 Strawberry Shop",
     callback = function()
         TeleportTo(Vector3.new(-223, 23, -490))
+        TeleportNotification("🍓 Strawberry Shop")
     end
 })
 
@@ -1640,6 +1679,7 @@ Teleport:CreateButton({
     name = "🧊 Ice Shop",
     callback = function()
         TeleportTo(Vector3.new(-55, 61, 313))
+        TeleportNotification("🧊 Ice Shop")
     end
 })
 
@@ -1647,6 +1687,7 @@ Teleport:CreateButton({
     name = "🍄 Mushroom Shop",
     callback = function()
         TeleportTo(Vector3.new(1224, 27, -138))
+        TeleportNotification("🍄 Mushroom Shop")
     end
 })
 
@@ -1654,6 +1695,7 @@ Teleport:CreateButton({
     name = "☢️ Uranium Shop",
     callback = function()
         TeleportTo(Vector3.new(1513, 24, -712))
+        TeleportNotification("☢️ Uranium Shop")
     end
 })
 
@@ -1661,6 +1703,7 @@ Teleport:CreateButton({
     name = "☄️ Meteor Shop",
     callback = function()
         TeleportTo(Vector3.new(1815, 57, -547))
+        TeleportNotification("☄️ Meteor Shop")
     end
 })
 
@@ -1668,6 +1711,7 @@ Teleport:CreateButton({
     name = "🦴 Fossil Shop",
     callback = function()
         TeleportTo(Vector3.new(1888, 70, 22))
+        TeleportNotification("🦴 Fossil Shop")
     end
 })
 
@@ -1675,6 +1719,7 @@ Teleport:CreateButton({
     name = "🤖 Tech Shop",
     callback = function()
         TeleportTo(Vector3.new(1982, 6, 827))
+        TeleportNotification("🤖 Tech Shop")
     end
 })
 
@@ -1692,6 +1737,7 @@ Teleport:CreateButton({
     name = "🫐 Blueberry Field",
     callback = function()
         TeleportTo(Vector3.new(11, 3, -60))
+        TeleportNotification("🫐 Blueberry Field")
     end
 })
 
@@ -1699,6 +1745,7 @@ Teleport:CreateButton({
     name = "🍇 Grape Field",
     callback = function()
         TeleportTo(Vector3.new(-165, 19, 60))
+        TeleportNotification("🍇 Grape Field")
     end
 })
 
@@ -1706,6 +1753,7 @@ Teleport:CreateButton({
     name = "🌻 Sunflower Field",
     callback = function()
         TeleportTo(Vector3.new(-36, 19, -148))
+        TeleportNotification("🌻 Sunflower Field")
     end
 })
 
@@ -1713,6 +1761,7 @@ Teleport:CreateButton({
     name = "🍬 Candy Field",
     callback = function()
         TeleportTo(Vector3.new(-275, 35, -390))
+        TeleportNotification("🍬 Candy Field")
     end
 })
 
@@ -1720,6 +1769,7 @@ Teleport:CreateButton({
     name = "⭐ Star Field",
     callback = function()
         TeleportTo(Vector3.new(-120, 59, -426))
+        TeleportNotification("⭐ Star Field")
     end
 })
 
@@ -1727,6 +1777,7 @@ Teleport:CreateButton({
     name = "🌲 Forest Field",
     callback = function()
         TeleportTo(Vector3.new(-380, 47, 187))
+        TeleportNotification("🌲 Forest Field")
     end
 })
 
@@ -1734,6 +1785,7 @@ Teleport:CreateButton({
     name = "🍓 Strawberry Field",
     callback = function()
         TeleportTo(Vector3.new(-328, 20, -532))
+        TeleportNotification("🍓 Strawberry Field")
     end
 })
 
@@ -1741,6 +1793,7 @@ Teleport:CreateButton({
     name = "🧊 Ice Field",
     callback = function()
         TeleportTo(Vector3.new(-130, 58, 188))
+        TeleportNotification("🧊 Ice Field")
     end
 })
 
@@ -1748,6 +1801,7 @@ Teleport:CreateButton({
     name = "🍄 Mushroom Field",
     callback = function()
         TeleportTo(Vector3.new(1274, 19, -49))
+        TeleportNotification("🍄 Mushroom Field")
     end
 })
 
@@ -1755,6 +1809,7 @@ Teleport:CreateButton({
     name = "☢️ Uranium Field",
     callback = function()
         TeleportTo(Vector3.new(1524, 52, -693))
+        TeleportNotification("☢️ Uranium Field")
     end
 })
 
@@ -1762,6 +1817,7 @@ Teleport:CreateButton({
     name = "☄️ Meteor Field",
     callback = function()
         TeleportTo(Vector3.new(1907, 70, -416))
+        TeleportNotification("☄️ Meteor Field")
     end
 })
 
@@ -1769,6 +1825,7 @@ Teleport:CreateButton({
     name = "🦴 Fossil Field",
     callback = function()
         TeleportTo(Vector3.new(1704, 100, 67))
+        TeleportNotification("🦴 Fossil Field")
     end
 })
 
@@ -1776,5 +1833,6 @@ Teleport:CreateButton({
     name = "🔗 Linked Field",
     callback = function()
         TeleportTo(Vector3.new(2062, 1, 679))
+        TeleportNotification("🔗 Linked Field")
     end
 })
