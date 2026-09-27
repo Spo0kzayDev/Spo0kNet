@@ -1,0 +1,28 @@
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
+
+local Window = Rayfield:CreateWindow({
+    name = "Spo0kNet"
+})
+
+Window:Popup({
+    title = "Load Spo0kNet?",
+    content = "Would you like to load Spo0kNet?",
+
+    options = {
+        {
+            text = "Cancel",
+            style = "neutral"
+        },
+
+        {
+            text = "Load",
+            style = "primary",
+
+            callback = function()
+                loadstring(game:HttpGet(
+                    "YOUR_MAIN_SCRIPT_RAW_URL"
+                ))()
+            end
+        }
+    }
+})
