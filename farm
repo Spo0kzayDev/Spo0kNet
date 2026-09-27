@@ -430,6 +430,16 @@ local Fields = {
             Vector3.new(1728, 100, 49),
             Vector3.new(1721, 100, 85)
         }
+    },
+
+    Linked = {
+        TP = Vector3.new(2062, 1, 679),
+        Points = {
+            Vector3.new(2074, 1, 650),
+            Vector3.new(2089, 1, 699),
+            Vector3.new(2044, 1, 713),
+            Vector3.new(2027, 1, 660)
+        }
     }
 }
 
@@ -1104,7 +1114,8 @@ Autofarm:CreateDropdown({
         "Mushroom",
         "Uranium",
         "Meteor",
-        "Fossil"
+        "Fossil",
+        "Linked"
     },
 
     multiSelect = false,
@@ -1394,6 +1405,27 @@ Teleport:CreateButton({
     end
 })
 
+Teleport:CreateButton({
+    name = "🔄 Rebirth 2",
+    callback = function()
+        TeleportTo(Vector3.new(1809, 100, 90))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🤖 Dyson Swarm",
+    callback = function()
+        TeleportTo(Vector3.new(2080, 8, 969))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🛠️ Cyber Anvil",
+    callback = function()
+        TeleportTo(Vector3.new(2018, 2, 764))
+    end
+})
+
 --// =========================
 --// SHOPS
 --// =========================
@@ -1488,6 +1520,13 @@ Teleport:CreateButton({
     end
 })
 
+Teleport:CreateButton({
+    name = "🤖 Tech Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1982, 6, 827))
+    end
+})
+
 --// =========================
 --// FIELDS
 --// =========================
@@ -1579,5 +1618,12 @@ Teleport:CreateButton({
     name = "🦴 Fossil Field",
     callback = function()
         TeleportTo(Vector3.new(1704, 100, 67))
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔗 Linked Field",
+    callback = function()
+        TeleportTo(Vector3.new(2062, 1, 679))
     end
 })
