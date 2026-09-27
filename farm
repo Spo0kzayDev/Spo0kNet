@@ -849,7 +849,6 @@ Home:CreateButton({
     name = "🔄 Rejoin Server",
 
     callback = function()
-
         Window:Popup({
             title = "Rejoin Server?",
             content = "Are you sure you want to rejoin the current server?",
@@ -865,12 +864,43 @@ Home:CreateButton({
                     style = "primary",
 
                     callback = function()
-
                         queue_on_teleport([[
                             loadstring(game:HttpGet(
-                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/loader.lua"
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
                             ))()
                         ]])
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+                    end
+                }
+            }
+        })
+    end
+})
+
+Home:CreateButton({
+    name = "⚠️ Unload Script",
+
+    callback = function()
+        Window:Popup({
+            title = "Unload Script?",
+            content = "Are you sure you want to unload Spo0kNet? This will make you rejoin.",
+
+            options = {
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Unload",
+                    style = "danger",
+
+                    callback = function()
 
                         TeleportService:TeleportToPlaceInstance(
                             game.PlaceId,
