@@ -20,7 +20,7 @@ Window:Popup({
 
             callback = function()
                 loadstring(game:HttpGet(
-                    "YOUR_MAIN_SCRIPT_RAW_URL"
+                    "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
                 ))()
             end
         }
