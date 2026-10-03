@@ -1,0 +1,230 @@
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+local Player = Players.LocalPlayer
+
+local Rayfield = loadstring(game:HttpGet(
+    "https://sirius.menu/gen2"
+))()
+
+local Window = Rayfield:CreateWindow({
+    name = "Spo0kNet"
+})
+
+--// HOME
+
+local Home = Window:CreateTab({
+    name = "🏠 Home"
+})
+
+Home:CreateText({
+    text = "👤 DisplayName: " .. Player.DisplayName
+})
+
+Home:CreateText({
+    text = "🪪 UserName: " .. Player.Name
+})
+
+Home:CreateDivider()
+
+local CoinsText = Home:CreateText({
+    text = "💰 Coins: Loading..."
+})
+
+local DPSText = Home:CreateText({
+    text = "⚔️ DPS: Loading..."
+})
+
+local PlaytimeText = Home:CreateText({
+    text = "⏱️ Playtime: Loading..."
+})
+
+
+--// STATS
+
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local Coins = PlayerGui
+    :WaitForChild("HUD")
+    :WaitForChild("Holder")
+    :WaitForChild("LeftList")
+    :WaitForChild("YourCoins")
+    :WaitForChild("Coins")
+
+local DPS = PlayerGui
+    :WaitForChild("Profile")
+    :WaitForChild("Main")
+    :WaitForChild("Main")
+    :WaitForChild("Statistics")
+    :WaitForChild("List")
+    :WaitForChild("Damage")
+    :WaitForChild("Boost")
+
+local Playtime = PlayerGui
+    :WaitForChild("Profile")
+    :WaitForChild("Main")
+    :WaitForChild("Main")
+    :WaitForChild("Statistics")
+    :WaitForChild("List")
+    :WaitForChild("Playtime")
+    :WaitForChild("Boost")
+
+
+local function UpdateStats()
+
+    CoinsText:Set(
+        "💰 Coins: " .. Coins.Text
+    )
+
+    DPSText:Set(
+        "⚔️ DPS: " .. DPS.Text
+    )
+
+    PlaytimeText:Set(
+        "⏱️ Playtime: " .. Playtime.Text
+    )
+
+end
+
+
+-- Initial values
+UpdateStats()
+
+
+-- Live updates
+Coins:GetPropertyChangedSignal("Text"):Connect(function()
+    CoinsText:Set(
+        "💰 Coins: " .. Coins.Text
+    )
+end)
+
+DPS:GetPropertyChangedSignal("Text"):Connect(function()
+    DPSText:Set(
+        "⚔️ DPS: " .. DPS.Text
+    )
+end)
+
+Playtime:GetPropertyChangedSignal("Text"):Connect(function()
+    PlaytimeText:Set(
+        "⏱️ Playtime: " .. Playtime.Text
+    )
+end)
+
+
+Home:CreateDivider()
+
+
+--// REJOIN SERVER
+
+Home:CreateButton({
+    name = "🔄 Rejoin Server",
+
+    callback = function()
+
+        Window:Popup({
+            title = "Rejoin Server?",
+            content = "Are you sure you want to rejoin the current server?",
+
+            options = {
+
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Rejoin",
+                    style = "primary",
+
+                    callback = function()
+
+                        queue_on_teleport([[
+                            loadstring(game:HttpGet(
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
+                            ))()
+                        ]])
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+
+                    end
+                }
+
+            }
+        })
+
+    end
+})
+
+
+--// UNLOAD SCRIPT
+
+Home:CreateButton({
+    name = "⚠️ Unload Script",
+
+    callback = function()
+
+        Window:Popup({
+            title = "Unload Script?",
+            content = "Are you sure you want to unload Spo0kNet? This will make you rejoin.",
+
+            options = {
+
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Unload",
+                    style = "danger",
+
+                    callback = function()
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+
+                    end
+                }
+
+            }
+        })
+
+    end
+})
+
+
+--// AUTOFARM
+
+local Autofarm = Window:CreateTab({
+    name = "🌾 Autofarm"
+})
+
+Autofarm:CreateToggle({
+    name = "Autofarm",
+
+    callback = function(Value)
+        -- Autofarm logic
+    end
+})
+
+Autofarm:CreateToggle({
+    name = "🪙 Auto Collect Tokens",
+
+    callback = function(Value)
+        -- Auto collect token logic
+    end
+})
+
+
+--// TELEPORTS
+
+local Teleports = Window:CreateTab({
+    name = "📍 Teleports"
+})
