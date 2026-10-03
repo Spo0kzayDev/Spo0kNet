@@ -2,10 +2,23 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-if game.GameId == 97109871947415 then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental"))()
-elseif game.GameId == 3623096087 then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/MuscleLegends"))()
+local Scripts = {
+    [97109871947415] = "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental",
+    [3623096087] = "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/MuscleLegends"
+}
+
+local ScriptURL = Scripts[game.GameId]
+
+if ScriptURL then
+    local Success, Result = pcall(function()
+        return loadstring(game:HttpGet(ScriptURL))()
+    end)
+
+    if not Success then
+        warn("[Spo0kNet] Failed to load game script:", Result)
+    end
 else
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/UnsupportedGameInfo"))()
+    loadstring(game:HttpGet(
+        "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/UnsupportedGameInfo"
+    ))()
 end
