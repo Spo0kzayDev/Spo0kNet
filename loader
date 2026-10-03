@@ -4,25 +4,1844 @@ local Window = Rayfield:CreateWindow({
     name = "Spo0kNet"
 })
 
-Window:Popup({
-    title = "Load Spo0kNet?",
-    content = "Would you like to load Spo0kNet?",
+--// =========================
+--// SERVICES
+--// =========================
 
-    options = {
-        {
-            text = "Cancel",
-            style = "neutral"
-        },
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
+local TeleportService = game:GetService("TeleportService")
 
-        {
-            text = "Load",
-            style = "primary",
+local Player = Players.LocalPlayer
 
-            callback = function()
-                loadstring(game:HttpGet(
-                    "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
-                ))()
+--// =========================
+--// SCRIPT STATE
+--// =========================
+
+local AutoFarmEnabled = false
+local AutoCollectTokens = false
+
+local CurrentField = "Blueberry"
+local CurrentMethod = "Walking"
+
+local SpinSpeed = 5
+local WalkSpeed = 25
+
+local BaseWalkSpeed = 16
+
+local EquippedItem = nil
+local EquipConnection = nil
+local SpinConnection = nil
+
+local MovementLocked = false
+
+local AutoMineEnabled = false
+
+local AutoUpgradeDamage = false
+local AutoUpgradeCrop = false
+
+local MiningPriorities = {
+    Copper = 1,
+    Iron = 1,
+    Gold = 1,
+    Diamond = 1,
+    ["Red Beryl"] = 1
+}
+
+--// =========================
+--// CHARACTER
+--// =========================
+
+local function GetCharacter()
+    return Player.Character or Player.CharacterAdded:Wait()
+end
+
+local function GetHumanoid()
+    local Character = GetCharacter()
+    return Character:FindFirstChildOfClass("Humanoid")
+end
+
+local function GetHRP()
+    local Character = GetCharacter()
+    return Character:FindFirstChild("HumanoidRootPart")
+end
+
+local function Notify(Title, Content, Duration)
+    pcall(function()
+        Window:Notify({
+            title = Title,
+            content = Content,
+            duration = Duration or 3
+        })
+    end)
+end
+
+local function TeleportTo(Position, LocationName)
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+
+    Character:PivotTo(CFrame.new(Position))
+
+    Notify(
+        "Teleported",
+        "Teleported to " .. LocationName .. "!",
+        3
+    )
+end
+
+--// =========================
+--// MINING
+--// =========================
+
+local MiningStartPosition = Vector3.new(2066, 0, 846)
+
+local MiningOres = {
+    "Copper",
+    "Iron",
+    "Gold",
+    "Diamond",
+    "Red Beryl"
+}
+
+local function GetOrePosition(Ore)
+    if Ore:IsA("BasePart") then
+        return Ore.Position
+    end
+
+    if Ore:IsA("Model") then
+        return Ore:GetPivot().Position
+    end
+
+    local Part = Ore:FindFirstChildWhichIsA(
+        "BasePart",
+        true
+    )
+
+    if Part then
+        return Part.Position
+    end
+
+    return nil
+end
+
+local function GetOreType(Ore)
+    local Name = Ore.Name
+
+    for _, OreName in ipairs(MiningOres) do
+        if string.lower(Name) == string.lower(OreName) then
+            return OreName
+        end
+    end
+
+    return nil
+end
+
+local function GetHighestPriorityOre()
+    local MyOres = workspace:FindFirstChild("MyOres")
+
+    if not MyOres then
+        return nil
+    end
+
+    local BestOre = nil
+    local BestPriority = -math.huge
+
+    for _, Ore in ipairs(MyOres:GetChildren()) do
+        local OreType = GetOreType(Ore)
+
+        if OreType then
+            local Position = GetOrePosition(Ore)
+
+            if Position then
+                local Priority = MiningPriorities[OreType] or 1
+
+                if Priority > BestPriority then
+                    BestPriority = Priority
+                    BestOre = Ore
+                end
             end
+        end
+    end
+
+    return BestOre
+end
+
+local function EquipMiningItem()
+    local Character = GetCharacter()
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    local Backpack = Player:FindFirstChildOfClass("Backpack")
+
+    if not Humanoid or not Backpack then
+        return nil
+    end
+
+    local Tool = Backpack:FindFirstChildWhichIsA("Tool")
+
+    if not Tool then
+        return nil
+    end
+
+    Humanoid:EquipTool(Tool)
+
+    return Tool
+end
+
+local function StartMining()
+    task.spawn(function()
+        local Character = GetCharacter()
+
+        Character:PivotTo(CFrame.new(MiningStartPosition))
+
+        while AutoMineEnabled do
+
+            --// =========================
+            --// DAMAGE UPGRADE
+            --// =========================
+
+            if AutoUpgradeDamage then
+                local Button =
+                    workspace
+                    :WaitForChild("UpgradePanels")
+                    :WaitForChild("OreDamageMulti1")
+                    :WaitForChild("SurfaceGui")
+                    :WaitForChild("Frame")
+                    :WaitForChild("PurchaseButton")
+
+                if Button.BackgroundColor3 == Color3.fromRGB(0, 206, 7) then
+
+                    -- Pause mining
+                    AutoMineEnabled = false
+
+                    Character = GetCharacter()
+
+                    -- Go to Damage upgrade
+                    Character:PivotTo(
+                        CFrame.new(2045, 1, 751)
+                    )
+
+                    task.wait(0.2)
+
+                    -- Purchase Damage upgrade
+                    game:GetService("ReplicatedStorage")
+                        .Remotes
+                        .Upgrade
+                        :FireServer("OreDamageMulti1")
+
+                    task.wait(0.5)
+
+                    -- Resume mining
+                    AutoMineEnabled = true
+
+                    continue
+                end
+            end
+
+            --// =========================
+            --// CROP UPGRADE
+            --// =========================
+
+            if AutoUpgradeCrop then
+                local Button =
+                    workspace
+                    :WaitForChild("UpgradePanels")
+                    :WaitForChild("MuscleMultiUpgrade12")
+                    :WaitForChild("SurfaceGui")
+                    :WaitForChild("Frame")
+                    :WaitForChild("PurchaseButton")
+
+                if Button.BackgroundColor3 == Color3.fromRGB(0, 206, 7) then
+
+                    -- Pause mining
+                    AutoMineEnabled = false
+
+                    Character = GetCharacter()
+
+                    -- Go to Crop upgrade
+                    Character:PivotTo(
+                        CFrame.new(2052, 1, 778)
+                    )
+
+                    task.wait(0.2)
+
+                    -- Purchase Crop upgrade
+                    game:GetService("ReplicatedStorage")
+                        .Remotes
+                        .Upgrade
+                        :FireServer("MuscleMultiUpgrade12")
+
+                    task.wait(0.5)
+
+                    -- Resume mining
+                    AutoMineEnabled = true
+
+                    continue
+                end
+            end
+
+            --// =========================
+            --// FIND HIGHEST PRIORITY ORE
+            --// =========================
+
+            local Ore = GetHighestPriorityOre()
+
+            if not Ore then
+                task.wait(0.25)
+                continue
+            end
+
+            if not Ore.Parent then
+                task.wait()
+                continue
+            end
+
+            --// =========================
+            --// TELEPORT TO ORE
+            --// =========================
+
+            local Position = GetOrePosition(Ore)
+
+            if Position then
+
+                Character = GetCharacter()
+
+                Character:PivotTo(
+                    CFrame.new(Position)
+                )
+
+                task.wait(0.1)
+
+                -- Equip mining tool
+                EquipMiningItem()
+
+                -- Wait for ore to disappear
+                while AutoMineEnabled and Ore.Parent do
+                    task.wait(0.1)
+                end
+
+            else
+                task.wait(0.1)
+            end
+        end
+    end)
+end
+
+local function StopMining()
+    AutoMineEnabled = false
+end
+
+--// =========================
+--// FIELD COORDINATES
+--// =========================
+
+local Fields = {
+    Blueberry = {
+        TP = Vector3.new(11, 3, -60),
+        Points = {
+            Vector3.new(26, 3, -46),
+            Vector3.new(-3, 3, -46),
+            Vector3.new(-3, 3, -75),
+            Vector3.new(24, 3, -75)
+        }
+    },
+
+    Grape = {
+        TP = Vector3.new(-165, 19, 60),
+        Points = {
+            Vector3.new(-187, 19, 77),
+            Vector3.new(-187, 19, 42),
+            Vector3.new(-144, 19, 42),
+            Vector3.new(-144, 19, 77)
+        }
+    },
+
+    Sunflower = {
+        TP = Vector3.new(-36, 19, -148),
+        Points = {
+            Vector3.new(-9, 19, -136),
+            Vector3.new(-61, 19, -135),
+            Vector3.new(-61, 19, -167),
+            Vector3.new(-10, 19, -167)
+        }
+    },
+
+    Candy = {
+        TP = Vector3.new(-275, 35, -390),
+        Points = {
+            Vector3.new(-304, 35, -404),
+            Vector3.new(-247, 35, -405),
+            Vector3.new(-246, 35, -372),
+            Vector3.new(-306, 35, -371)
+        }
+    },
+
+    Star = {
+        TP = Vector3.new(-120, 59, -426),
+        Points = {
+            Vector3.new(-140, 59, -399),
+            Vector3.new(-141, 59, -458),
+            Vector3.new(-96, 59, -458),
+            Vector3.new(-95, 59, -400)
+        }
+    },
+
+    Forest = {
+        TP = Vector3.new(-380, 47, 187),
+        Points = {
+            Vector3.new(-362, 47, 173),
+            Vector3.new(-362, 47, 201),
+            Vector3.new(-397, 47, 201),
+            Vector3.new(-397, 47, 172)
+        }
+    },
+
+    Strawberry = {
+        TP = Vector3.new(-328, 20, -532),
+        Points = {
+            Vector3.new(-341, 20, -513),
+            Vector3.new(-341, 20, -555),
+            Vector3.new(-312, 20, -556),
+            Vector3.new(-311, 20, -512)
+        }
+    },
+
+    Ice = {
+        TP = Vector3.new(-130, 58, 188),
+        Points = {
+            Vector3.new(-113, 58, 166),
+            Vector3.new(-113, 58, 212),
+            Vector3.new(-150, 58, 212),
+            Vector3.new(-150, 58, 166)
+        }
+    },
+
+    Mushroom = {
+        TP = Vector3.new(1274, 19, -49),
+        Points = {
+            Vector3.new(1288, 19, -75),
+            Vector3.new(1289, 19, -23),
+            Vector3.new(1250, 19, -22),
+            Vector3.new(1249, 19, -79)
+        }
+    },
+
+    Uranium = {
+        TP = Vector3.new(1524, 52, -693),
+        Points = {
+            Vector3.new(1546, 52, -717),
+            Vector3.new(1547, 52, -670),
+            Vector3.new(1497, 52, -670),
+            Vector3.new(1496, 52, -717)
+        }
+    },
+
+    Meteor = {
+        TP = Vector3.new(1907, 70, -416),
+        Points = {
+            Vector3.new(1929, 70, -391),
+            Vector3.new(1878, 70, -399),
+            Vector3.new(1885, 70, -437),
+            Vector3.new(1936, 70, -430)
+        }
+    },
+
+    Fossil = {
+        TP = Vector3.new(1704, 100, 67),
+        Points = {
+            Vector3.new(1682, 100, 82),
+            Vector3.new(1690, 100, 41),
+            Vector3.new(1728, 100, 49),
+            Vector3.new(1721, 100, 85)
+        }
+    },
+
+    Linked = {
+        TP = Vector3.new(2062, 1, 679),
+        Points = {
+            Vector3.new(2074, 1, 650),
+            Vector3.new(2089, 1, 699),
+            Vector3.new(2044, 1, 713),
+            Vector3.new(2027, 1, 660)
         }
     }
+}
+
+--// =========================
+--// MOVEMENT
+--// =========================
+
+local MovementKeys = {
+    Enum.KeyCode.W,
+    Enum.KeyCode.A,
+    Enum.KeyCode.S,
+    Enum.KeyCode.D,
+
+    Enum.KeyCode.Up,
+    Enum.KeyCode.Down,
+    Enum.KeyCode.Left,
+    Enum.KeyCode.Right,
+
+    Enum.KeyCode.Space
+}
+
+local function BlockMovement()
+    if MovementLocked then
+        return
+    end
+
+    MovementLocked = true
+
+    ContextActionService:BindAction(
+        "Spo0kNet_BlockMovement",
+        function()
+            return Enum.ContextActionResult.Sink
+        end,
+        false,
+        table.unpack(MovementKeys)
+    )
+
+    local Humanoid = GetHumanoid()
+
+    if Humanoid then
+        Humanoid.Jump = false
+
+        Humanoid:SetStateEnabled(
+            Enum.HumanoidStateType.Jumping,
+            false
+        )
+    end
+end
+
+local function UnblockMovement()
+    MovementLocked = false
+
+    pcall(function()
+        ContextActionService:UnbindAction(
+            "Spo0kNet_BlockMovement"
+        )
+    end)
+
+    local Humanoid = GetHumanoid()
+
+    if Humanoid then
+        Humanoid.Jump = false
+
+        Humanoid:SetStateEnabled(
+            Enum.HumanoidStateType.Jumping,
+            true
+        )
+    end
+end
+
+--// =========================
+--// KEEP TOOL EQUIPPED
+--// =========================
+
+local function EquipAutofarmItem()
+    local Character = GetCharacter()
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+    local Backpack = Player:FindFirstChildOfClass("Backpack")
+
+    if not Humanoid or not Backpack then
+        return
+    end
+
+    local Item = Backpack:FindFirstChildWhichIsA("Tool")
+
+    if not Item then
+        return
+    end
+
+    EquippedItem = Item
+
+    Humanoid:EquipTool(Item)
+end
+
+local function StartItemEquip()
+    if EquipConnection then
+        EquipConnection:Disconnect()
+        EquipConnection = nil
+    end
+
+    EquipAutofarmItem()
+
+    EquipConnection = RunService.Heartbeat:Connect(function()
+        if not AutoFarmEnabled then
+            return
+        end
+
+        if not EquippedItem then
+            return
+        end
+
+        local Character = Player.Character
+
+        if not Character then
+            return
+        end
+
+        local Humanoid =
+            Character:FindFirstChildOfClass("Humanoid")
+
+        local Backpack =
+            Player:FindFirstChildOfClass("Backpack")
+
+        if not Humanoid or not Backpack then
+            return
+        end
+
+        if EquippedItem.Parent == Backpack then
+            Humanoid:EquipTool(EquippedItem)
+        end
+    end)
+end
+
+local function StopItemEquip()
+    if EquipConnection then
+        EquipConnection:Disconnect()
+        EquipConnection = nil
+    end
+
+    EquippedItem = nil
+end
+
+--// =========================
+--// SPINNING
+--// =========================
+
+local SpinConnection
+local SpinAngle = 0
+
+local function StartSpinning()
+    if SpinConnection then
+        SpinConnection:Disconnect()
+        SpinConnection = nil
+    end
+
+    SpinConnection = RunService.RenderStepped:Connect(function(dt)
+        if not AutoFarmEnabled or CurrentMethod ~= "Spin" then
+            return
+        end
+
+        local Character = game.Players.LocalPlayer.Character
+        if not Character then
+            return
+        end
+
+        local HRP = Character:FindFirstChild("HumanoidRootPart")
+        if not HRP then
+            return
+        end
+
+        SpinAngle = (SpinAngle + SpinSpeed * dt) % 360
+
+        local Position = HRP.Position
+
+        Character:PivotTo(
+            CFrame.new(Position) *
+            CFrame.Angles(0, math.rad(SpinAngle), 0)
+        )
+    end)
+end
+
+local function StopSpinning()
+    if SpinConnection then
+        SpinConnection:Disconnect()
+        SpinConnection = nil
+    end
+end
+
+--// =========================
+--// WALK TO POINT
+--// =========================
+
+local function WalkToPoint(Point)
+    if not AutoFarmEnabled then
+        return
+    end
+
+    local Humanoid = GetHumanoid()
+
+    if not Humanoid or Humanoid.Health <= 0 then
+        return
+    end
+
+    Humanoid.WalkSpeed = WalkSpeed
+    Humanoid:MoveTo(Point)
+
+    while AutoFarmEnabled
+        and CurrentMethod == "Walking" do
+
+        local HRP = GetHRP()
+
+        if not HRP then
+            break
+        end
+
+        if (HRP.Position - Point).Magnitude <= 3 then
+            break
+        end
+
+        task.wait(0.05)
+    end
+end
+
+--// =========================
+--// WALKING LOOP
+--// =========================
+
+local function StartWalking(FieldData)
+    task.spawn(function()
+        while AutoFarmEnabled
+            and CurrentMethod == "Walking" do
+
+            for _, Point in ipairs(FieldData.Points) do
+
+                if not AutoFarmEnabled
+                    or CurrentMethod ~= "Walking" then
+                    break
+                end
+
+                WalkToPoint(Point)
+
+                task.wait(0.1)
+            end
+        end
+    end)
+end
+
+--// =========================
+--// START AUTOFARM
+--// =========================
+
+local function StartAutofarm()
+    if not AutoFarmEnabled then
+        return
+    end
+
+    local FieldData = Fields[CurrentField]
+
+    if not FieldData then
+        return
+    end
+
+    local Character = GetCharacter()
+
+    Character:PivotTo(
+        CFrame.new(FieldData.TP)
+    )
+
+    BlockMovement()
+
+    local Humanoid = GetHumanoid()
+
+    if Humanoid then
+        Humanoid.Jump = false
+
+        Humanoid:SetStateEnabled(
+            Enum.HumanoidStateType.Jumping,
+            false
+        )
+    end
+
+    if CurrentMethod == "Spin" then
+
+        StopSpinning()
+        StartSpinning()
+
+    elseif CurrentMethod == "Walking" then
+
+        StopSpinning()
+
+        if Humanoid then
+            Humanoid.WalkSpeed = WalkSpeed
+        end
+
+        StartWalking(FieldData)
+    end
+end
+
+--// =========================
+--// STOP AUTOFARM
+--// =========================
+
+local function StopAutofarm()
+    AutoFarmEnabled = false
+
+    StopSpinning()
+    UnblockMovement()
+
+    local Humanoid = GetHumanoid()
+
+    if Humanoid then
+        Humanoid:Move(Vector3.zero, false)
+
+        Humanoid.WalkSpeed = BaseWalkSpeed
+
+        Humanoid:SetStateEnabled(
+            Enum.HumanoidStateType.Jumping,
+            true
+        )
+
+        Humanoid.Jump = false
+    end
+end
+
+local AutoSellEnabled = false
+
+local function StartAutoSell()
+    task.spawn(function()
+        while AutoSellEnabled do
+            game:GetService("ReplicatedStorage").Remotes.Sell:FireServer()
+            task.wait(1)
+        end
+    end)
+end
+
+local AutoFarmStartTime = nil
+local AutoMineStartTime = nil
+
+local function FormatDuration(Seconds)
+    Seconds = math.floor(Seconds)
+
+    local Hours = math.floor(Seconds / 3600)
+    Seconds = Seconds % 3600
+
+    local Minutes = math.floor(Seconds / 60)
+    Seconds = Seconds % 60
+
+    if Hours > 0 then
+        return string.format("%dh %dm %ds", Hours, Minutes, Seconds)
+    elseif Minutes > 0 then
+        return string.format("%dm %ds", Minutes, Seconds)
+    else
+        return string.format("%ds", Seconds)
+    end
+end
+
+--// =========================
+--// HOME
+--// =========================
+
+local Home = Window:CreateTab({
+    name = "🏠 Home"
+})
+
+Home:CreateText({
+    text = "👤 DisplayName: " .. Player.DisplayName
+})
+
+Home:CreateText({
+    text = "🪪 UserName: " .. Player.Name
+})
+
+Home:CreateDivider()
+
+local CashText = Home:CreateText({
+    text = "💰 Cash: Loading..."
+})
+
+local CropsText = Home:CreateText({
+    text = "🌾 Crops: Loading..."
+})
+
+local RebirthsText = Home:CreateText({
+    text = "🔄 Rebirths: Loading..."
+})
+
+local Leaderstats = Player:WaitForChild("leaderstats")
+
+local Cash = Leaderstats:WaitForChild("Cash")
+local Crops = Leaderstats:WaitForChild("Crops")
+local Rebirths = Leaderstats:WaitForChild("Rebirths")
+
+local function UpdateStats()
+    CashText:Set(
+        "💰 Cash: " .. tostring(Cash.Value)
+    )
+
+    CropsText:Set(
+        "🌾 Crops: " .. tostring(Crops.Value)
+    )
+
+    RebirthsText:Set(
+        "🔄 Rebirths: " .. tostring(Rebirths.Value)
+    )
+end
+
+UpdateStats()
+
+Cash:GetPropertyChangedSignal("Value"):Connect(UpdateStats)
+Crops:GetPropertyChangedSignal("Value"):Connect(UpdateStats)
+Rebirths:GetPropertyChangedSignal("Value"):Connect(UpdateStats)
+
+Home:CreateDivider()
+
+Home:CreateButton({
+    name = "🔄 Rejoin Server",
+
+    callback = function()
+        Window:Popup({
+            title = "Rejoin Server?",
+            content = "Are you sure you want to rejoin the current server?",
+
+            options = {
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Rejoin",
+                    style = "primary",
+
+                    callback = function()
+                        queue_on_teleport([[
+                            loadstring(game:HttpGet(
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
+                            ))()
+                        ]])
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+                    end
+                }
+            }
+        })
+    end
+})
+
+Home:CreateButton({
+    name = "⚠️ Unload Script",
+
+    callback = function()
+        Window:Popup({
+            title = "Unload Script?",
+            content = "Are you sure you want to unload Spo0kNet? This will make you rejoin.",
+
+            options = {
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Unload",
+                    style = "danger",
+
+                    callback = function()
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+                    end
+                }
+            }
+        })
+    end
+})
+
+--// =========================
+--// AUTO UPGRADES
+--// =========================
+
+local function ActivateUpgradeButton(Button)
+    if not Button then
+        return false
+    end
+
+    local Success = pcall(function()
+        firesignal(Button.MouseButton1Click)
+    end)
+
+    return Success
+end
+
+local function CheckDamageUpgrade()
+    if not AutoUpgradeDamage then
+        return false
+    end
+
+    local Button =
+        workspace
+        :WaitForChild("UpgradePanels")
+        :WaitForChild("OreDamageMulti1")
+        :WaitForChild("SurfaceGui")
+        :WaitForChild("Frame")
+        :WaitForChild("PurchaseButton")
+
+    local Color = Button.BackgroundColor3
+
+    -- Red = unavailable, continue mining
+    if Color == Color3.fromRGB(177, 0, 0) then
+        return false
+    end
+
+    -- Green = purchasable
+    if Color == Color3.fromRGB(0, 206, 7) then
+
+        -- Pause mining
+        AutoMineEnabled = false
+
+        local Character = GetCharacter()
+
+        Character:PivotTo(
+            CFrame.new(2045, 1, 751)
+        )
+
+        task.wait(0.15)
+
+        ActivateUpgradeButton(Button)
+
+        task.wait(0.25)
+
+        AutoMineEnabled = true
+
+        return true
+    end
+
+    return false
+end
+
+local function CheckCropUpgrade()
+    if not AutoUpgradeCrop then
+        return false
+    end
+
+    local Button =
+        workspace
+        :WaitForChild("UpgradePanels")
+        :WaitForChild("MuscleMultiUpgrade12")
+        :WaitForChild("SurfaceGui")
+        :WaitForChild("Frame")
+        :WaitForChild("PurchaseButton")
+
+    local Color = Button.BackgroundColor3
+
+    -- Red = unavailable, continue mining
+    if Color == Color3.fromRGB(177, 0, 0) then
+        return false
+    end
+
+    -- Green = purchasable
+    if Color == Color3.fromRGB(0, 206, 7) then
+
+        -- Pause mining
+        AutoMineEnabled = false
+
+        local Character = GetCharacter()
+
+        Character:PivotTo(
+            CFrame.new(2052, 1, 778)
+        )
+
+        task.wait(0.15)
+
+        ActivateUpgradeButton(Button)
+
+        task.wait(0.25)
+
+        AutoMineEnabled = true
+
+        return true
+    end
+
+    return false
+end
+
+--// =========================
+--// AUTOFARM TAB
+--// =========================
+
+local Autofarm = Window:CreateTab({
+    name = "🌾 Autofarm"
+})
+
+--// =========================
+--// AUTOFARM
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "⚡ Autofarm",
+    flag = "Autofarm",
+    callback = function(value)
+        if value then
+            if AutoMineEnabled then
+                StopMining()
+                AutoMineEnabled = false
+
+                local Duration = AutoMineStartTime
+                    and FormatDuration(os.clock() - AutoMineStartTime)
+                    or "0s"
+
+                AutoMineStartTime = nil
+
+                Notify("Auto Mine Disabled", "You had Auto Mine active for " .. Duration .. "!", 4)
+            end
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+                BaseWalkSpeed = Humanoid.WalkSpeed
+            end
+
+            AutoFarmEnabled = true
+            AutoFarmStartTime = os.clock()
+
+            Notify("Autofarm Enabled", "Autofarm has been enabled!", 3)
+
+            StartItemEquip()
+            StartAutofarm()
+
+        else
+            local Duration = AutoFarmStartTime
+                and FormatDuration(os.clock() - AutoFarmStartTime)
+                or "0s"
+
+            AutoFarmStartTime = nil
+
+            StopItemEquip()
+            StopAutofarm()
+
+            Notify("Autofarm Disabled", "You had Autofarm active for " .. Duration .. "!", 3)
+        end
+    end
+})
+
+--// =========================
+--// AUTO MINE
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "⛏️ Auto Mine",
+    flag = "AutoMine",
+    callback = function(value)
+        if value then
+            if AutoFarmEnabled then
+                local Duration = AutoFarmStartTime
+                    and FormatDuration(os.clock() - AutoFarmStartTime)
+                    or "0s"
+
+                AutoFarmStartTime = nil
+
+                StopItemEquip()
+                StopAutofarm()
+                AutoFarmEnabled = false
+
+                Notify("Autofarm Disabled", "Autofarm has been disabled!", 3)
+            end
+
+            AutoMineEnabled = true
+            AutoMineStartTime = os.clock()
+
+            Notify("Auto Mine Enabled", "Auto Mine has been enabled!", 3)
+
+            StartMining()
+
+        else
+            local Duration = AutoMineStartTime
+                and FormatDuration(os.clock() - AutoMineStartTime)
+                or "0s"
+
+            AutoMineStartTime = nil
+
+            StopMining()
+
+            Notify("Auto Mine Disabled", "You had Auto Mine active for " .. Duration .. "!", 4)
+        end
+    end
+})
+
+--// =========================
+--// AUTO COLLECT TOKENS
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "🧲 Auto Collect Tokens",
+    flag = "AutoCollectTokens",
+
+    callback = function(value)
+        AutoCollectTokens = value
+
+        if value then
+            Notify(
+                "Auto Collect Tokens Enabled",
+                "Token collection has been enabled!",
+                3
+            )
+        else
+            Notify(
+                "Auto Collect Tokens Disabled",
+                "Token collection has been disabled!",
+                3
+            )
+        end
+    end
+})
+
+task.spawn(function()
+
+    while true do
+
+        if AutoCollectTokens then
+
+            local Character = Player.Character
+
+            local HRP =
+                Character
+                and Character:FindFirstChild("HumanoidRootPart")
+
+            local Tokens =
+                workspace:FindFirstChild("Tokens")
+
+            if HRP and Tokens then
+
+                local TokenParts = {}
+
+                for _, Token in ipairs(
+                    Tokens:GetDescendants()
+                ) do
+
+                    if Token:IsA("BasePart") then
+                        table.insert(TokenParts, Token)
+                    end
+                end
+
+                -- Touch every token
+                for _, Token in ipairs(TokenParts) do
+
+                    if not AutoCollectTokens then
+                        break
+                    end
+
+                    pcall(function()
+                        firetouchinterest(
+                            HRP,
+                            Token,
+                            0
+                        )
+                    end)
+                end
+
+                -- Release every token
+                for _, Token in ipairs(TokenParts) do
+
+                    if not AutoCollectTokens then
+                        break
+                    end
+
+                    pcall(function()
+                        firetouchinterest(
+                            HRP,
+                            Token,
+                            1
+                        )
+                    end)
+                end
+            end
+        end
+
+        task.wait(1)
+    end
+end)
+
+Autofarm:CreateToggle({
+    name = "💰 Auto Sell",
+    flag = "AutoSell",
+    callback = function(value)
+        AutoSellEnabled = value
+
+        if value then
+            Notify("Auto Sell Enabled", "Auto Sell has been enabled!", 3)
+            StartAutoSell()
+        else
+            Notify("Auto Sell Disabled", "Auto Sell has been disabled!", 3)
+        end
+    end
+})
+
+--// =========================
+--// DIVIDER
+--// =========================
+
+Autofarm:CreateDivider()
+
+--// =========================
+--// FIELD
+--// =========================
+
+Autofarm:CreateDropdown({
+    name = "🌾 Field",
+
+    options = {
+        "Blueberry",
+        "Grape",
+        "Sunflower",
+        "Candy",
+        "Star",
+        "Forest",
+        "Strawberry",
+        "Ice",
+        "Mushroom",
+        "Uranium",
+        "Meteor",
+        "Fossil",
+        "Linked"
+    },
+
+    multiSelect = false,
+    value = "Blueberry",
+    flag = "Field",
+
+    callback = function(field)
+
+        CurrentField = field
+
+        if AutoFarmEnabled and Fields[field] then
+
+            AutoFarmEnabled = false
+
+            StopSpinning()
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+                Humanoid:Move(Vector3.zero, false)
+            end
+
+            AutoFarmEnabled = true
+
+            StartAutofarm()
+        end
+    end
+})
+
+--// =========================
+--// METHOD
+--// =========================
+
+Autofarm:CreateDropdown({
+    name = "🔄 Method",
+
+    options = {
+        "Walking",
+        "Spin"
+    },
+
+    multiSelect = false,
+    value = "Walking",
+    flag = "Method",
+
+    callback = function(method)
+
+        CurrentMethod = method
+
+        if AutoFarmEnabled then
+
+            AutoFarmEnabled = false
+
+            StopSpinning()
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+
+                Humanoid:Move(
+                    Vector3.zero,
+                    false
+                )
+
+                if method == "Spin" then
+                    Humanoid.WalkSpeed =
+                        BaseWalkSpeed
+                end
+            end
+
+            AutoFarmEnabled = true
+
+            StartAutofarm()
+        end
+    end
+})
+
+--// =========================
+--// SPIN SPEED
+--// =========================
+
+Autofarm:CreateSlider({
+    name = "🌀 Spin Speed",
+
+    range = {100, 300},
+    increment = 5,
+    value = 5,
+    flag = "SpinSpeed",
+
+    callback = function(value)
+        SpinSpeed = value
+    end
+})
+
+--// =========================
+--// WALK SPEED
+--// =========================
+
+Autofarm:CreateSlider({
+    name = "🏃 Walk Speed",
+
+    range = {25, 75},
+    increment = 1,
+    value = 25,
+    flag = "WalkSpeed",
+
+    callback = function(value)
+
+        WalkSpeed = value
+
+        if AutoFarmEnabled
+            and CurrentMethod == "Walking" then
+
+            local Humanoid = GetHumanoid()
+
+            if Humanoid then
+                Humanoid.WalkSpeed =
+                    WalkSpeed
+            end
+        end
+    end
+})
+
+--// =========================
+--// DIVIDER
+--// =========================
+
+Autofarm:CreateDivider()
+
+--// =========================
+--// AUTO UPGRADES
+--// =========================
+
+Autofarm:CreateToggle({
+    name = "⚔️ Auto Upgrade Damage",
+    flag = "AutoUpgradeDamage",
+
+    callback = function(value)
+        AutoUpgradeDamage = value
+    end
+})
+
+Autofarm:CreateToggle({
+    name = "🌾 Auto Upgrade Crop",
+    flag = "AutoUpgradeCrop",
+
+    callback = function(value)
+        AutoUpgradeCrop = value
+    end
+})
+
+--// =========================
+--// MINING PRIORITIES
+--// =========================
+
+Autofarm:CreateSlider({
+    name = "🟤 Copper Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "CopperPriority",
+
+    callback = function(value)
+        MiningPriorities.Copper = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "⚙️ Iron Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "IronPriority",
+
+    callback = function(value)
+        MiningPriorities.Iron = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "🟡 Gold Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "GoldPriority",
+
+    callback = function(value)
+        MiningPriorities.Gold = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "💎 Diamond Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "DiamondPriority",
+
+    callback = function(value)
+        MiningPriorities.Diamond = value
+    end
+})
+
+Autofarm:CreateSlider({
+    name = "🔴 Red Beryl Priority",
+
+    range = {1, 5},
+    increment = 1,
+    value = 1,
+    flag = "RedBerylPriority",
+
+    callback = function(value)
+        MiningPriorities["Red Beryl"] = value
+    end
+})
+
+--// =========================
+--// TELEPORT TAB
+--// =========================
+
+local Teleport = Window:CreateTab({
+    name = "🧭 Teleport"
+})
+
+local function TeleportTo(Position)
+
+    local Character =
+        Player.Character or
+        Player.CharacterAdded:Wait()
+
+    Character:PivotTo(
+        CFrame.new(Position)
+    )
+end
+
+local function TeleportNotification(LocationName)
+    Notify(
+        "Teleported",
+        "Teleported to " .. LocationName .. "!",
+        3
+    )
+end
+
+--// =========================
+--// MECHANICS
+--// =========================
+
+Teleport:CreateText({
+    text = "||⚙️ Mechanics ⚙️||"
+})
+
+Teleport:CreateButton({
+    name = "🔨 Crafter 1",
+    callback = function()
+        TeleportTo(Vector3.new(-90, 21, -215))
+        TeleportNotification("🔨 Crafter 1")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔨 Crafter 2",
+    callback = function()
+        TeleportTo(Vector3.new(1348, 21, 18))
+        TeleportNotification("🔨 Crafter 2")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌈 Chroma 1",
+    callback = function()
+        TeleportTo(Vector3.new(-110, 60, 319))
+        TeleportNotification("🌈 Chroma 1")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌈 Chroma 2",
+    callback = function()
+        TeleportTo(Vector3.new(1273, 21, 39))
+        TeleportNotification("🌈 Chroma 2")
+    end
+})
+
+Teleport:CreateButton({
+    name = "☢️ Reactor",
+    callback = function()
+        TeleportTo(Vector3.new(1334, -5, -610))
+        TeleportNotification("☢️ Reactor")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔄 Rebirth 1",
+    callback = function()
+        TeleportTo(Vector3.new(-11, 60, 270))
+        TeleportNotification("🔄 Rebirth 1")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔄 Rebirth 2",
+    callback = function()
+        TeleportTo(Vector3.new(1809, 100, 90))
+        TeleportNotification("🔄 Rebirth 2")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🤖 Dyson Swarm",
+    callback = function()
+        TeleportTo(Vector3.new(2080, 8, 969))
+        TeleportNotification("🤖 Dyson Swarm")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🛠️ Cyber Anvil",
+    callback = function()
+        TeleportTo(Vector3.new(2018, 2, 764))
+        TeleportNotification("🛠️ Cyber Anvil")
+    end
+})
+
+--// =========================
+--// SHOPS
+--// =========================
+
+Teleport:CreateDivider()
+
+Teleport:CreateText({
+    text = "||🛒 Shops 🛒||"
+})
+
+Teleport:CreateButton({
+    name = "🫐 Blueberry Shop",
+    callback = function()
+        TeleportTo(Vector3.new(74, 6, 54))
+        TeleportNotification("🫐 Blueberry Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍇 Grape Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-195, 22, -42))
+        TeleportNotification("🍇 Grape Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "💎 Crystal Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-397, 5, -41))
+        TeleportNotification("💎 Crystal Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍬 Candy Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-357, 37, -384))
+        TeleportNotification("🍬 Candy Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "⭐ Star Shop",
+    callback = function()
+        TeleportTo(Vector3.new(49, 80, -372))
+        TeleportNotification("⭐ Star Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌲 Forest Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-390, -1, 207))
+        TeleportNotification("🌲 Forest Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍓 Strawberry Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-223, 23, -490))
+        TeleportNotification("🍓 Strawberry Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🧊 Ice Shop",
+    callback = function()
+        TeleportTo(Vector3.new(-55, 61, 313))
+        TeleportNotification("🧊 Ice Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍄 Mushroom Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1224, 27, -138))
+        TeleportNotification("🍄 Mushroom Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "☢️ Uranium Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1513, 24, -712))
+        TeleportNotification("☢️ Uranium Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "☄️ Meteor Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1815, 57, -547))
+        TeleportNotification("☄️ Meteor Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🦴 Fossil Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1888, 70, 22))
+        TeleportNotification("🦴 Fossil Shop")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🤖 Tech Shop",
+    callback = function()
+        TeleportTo(Vector3.new(1982, 6, 827))
+        TeleportNotification("🤖 Tech Shop")
+    end
+})
+
+--// =========================
+--// FIELDS
+--// =========================
+
+Teleport:CreateDivider()
+
+Teleport:CreateText({
+    text = "||🌾 Fields 🌾||"
+})
+
+Teleport:CreateButton({
+    name = "🫐 Blueberry Field",
+    callback = function()
+        TeleportTo(Vector3.new(11, 3, -60))
+        TeleportNotification("🫐 Blueberry Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍇 Grape Field",
+    callback = function()
+        TeleportTo(Vector3.new(-165, 19, 60))
+        TeleportNotification("🍇 Grape Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌻 Sunflower Field",
+    callback = function()
+        TeleportTo(Vector3.new(-36, 19, -148))
+        TeleportNotification("🌻 Sunflower Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍬 Candy Field",
+    callback = function()
+        TeleportTo(Vector3.new(-275, 35, -390))
+        TeleportNotification("🍬 Candy Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "⭐ Star Field",
+    callback = function()
+        TeleportTo(Vector3.new(-120, 59, -426))
+        TeleportNotification("⭐ Star Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🌲 Forest Field",
+    callback = function()
+        TeleportTo(Vector3.new(-380, 47, 187))
+        TeleportNotification("🌲 Forest Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍓 Strawberry Field",
+    callback = function()
+        TeleportTo(Vector3.new(-328, 20, -532))
+        TeleportNotification("🍓 Strawberry Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🧊 Ice Field",
+    callback = function()
+        TeleportTo(Vector3.new(-130, 58, 188))
+        TeleportNotification("🧊 Ice Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🍄 Mushroom Field",
+    callback = function()
+        TeleportTo(Vector3.new(1274, 19, -49))
+        TeleportNotification("🍄 Mushroom Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "☢️ Uranium Field",
+    callback = function()
+        TeleportTo(Vector3.new(1524, 52, -693))
+        TeleportNotification("☢️ Uranium Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "☄️ Meteor Field",
+    callback = function()
+        TeleportTo(Vector3.new(1907, 70, -416))
+        TeleportNotification("☄️ Meteor Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🦴 Fossil Field",
+    callback = function()
+        TeleportTo(Vector3.new(1704, 100, 67))
+        TeleportNotification("🦴 Fossil Field")
+    end
+})
+
+Teleport:CreateButton({
+    name = "🔗 Linked Field",
+    callback = function()
+        TeleportTo(Vector3.new(2062, 1, 679))
+        TeleportNotification("🔗 Linked Field")
+    end
 })
