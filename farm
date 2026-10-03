@@ -608,29 +608,38 @@ end
 --// SPINNING
 --// =========================
 
+local SpinConnection
+local SpinAngle = 0
+
 local function StartSpinning()
     if SpinConnection then
         SpinConnection:Disconnect()
         SpinConnection = nil
     end
 
-    SpinConnection = RunService.RenderStepped:Connect(function()
-        if not AutoFarmEnabled
-            or CurrentMethod ~= "Spin" then
+    SpinConnection = RunService.RenderStepped:Connect(function(dt)
+        if not AutoFarmEnabled or CurrentMethod ~= "Spin" then
             return
         end
 
-        local HRP = GetHRP()
-
-        if HRP then
-            HRP.CFrame =
-                HRP.CFrame *
-                CFrame.Angles(
-                    0,
-                    math.rad(SpinSpeed),
-                    0
-                )
+        local Character = game.Players.LocalPlayer.Character
+        if not Character then
+            return
         end
+
+        local HRP = Character:FindFirstChild("HumanoidRootPart")
+        if not HRP then
+            return
+        end
+
+        SpinAngle = (SpinAngle + SpinSpeed * dt) % 360
+
+        local Position = HRP.Position
+
+        Character:PivotTo(
+            CFrame.new(Position) *
+            CFrame.Angles(0, math.rad(SpinAngle), 0)
+        )
     end)
 end
 
@@ -1366,8 +1375,8 @@ Autofarm:CreateDropdown({
 Autofarm:CreateSlider({
     name = "🌀 Spin Speed",
 
-    range = {1, 10},
-    increment = 1,
+    range = {100, 300},
+    increment = 5,
     value = 5,
     flag = "SpinSpeed",
 
