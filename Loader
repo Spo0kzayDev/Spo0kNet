@@ -6,4 +6,6 @@ if game.GameId == 97109871947415 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental"))()
 elseif game.GameId == 3623096087 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/MuscleLegends"))()
+else
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/UnsupportedGameInfo"))()
 end
