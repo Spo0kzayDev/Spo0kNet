@@ -17,6 +17,8 @@ local Home = Window:CreateTab({
     name = "🏠 Home"
 })
 
+--// PLAYER INFO
+
 Home:CreateText({
     text = "👤 DisplayName: " .. Player.DisplayName
 })
@@ -25,22 +27,8 @@ Home:CreateText({
     text = "🪪 UserName: " .. Player.Name
 })
 
-Home:CreateDivider()
 
-local CoinsText = Home:CreateText({
-    text = "💰 Coins: Loading..."
-})
-
-local DPSText = Home:CreateText({
-    text = "⚔️ DPS: Loading..."
-})
-
-local PlaytimeText = Home:CreateText({
-    text = "⏱️ Playtime: Loading..."
-})
-
-
---// STATS
+--// COINS
 
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
@@ -51,63 +39,26 @@ local Coins = PlayerGui
     :WaitForChild("YourCoins")
     :WaitForChild("Coins")
 
-local DPS = PlayerGui
-    :WaitForChild("Profile")
-    :WaitForChild("Main")
-    :WaitForChild("Main")
-    :WaitForChild("Statistics")
-    :WaitForChild("List")
-    :WaitForChild("Damage")
-    :WaitForChild("Boost")
+local CoinsText = Home:CreateText({
+    text = "💰 Coins: Loading..."
+})
 
-local Playtime = PlayerGui
-    :WaitForChild("Profile")
-    :WaitForChild("Main")
-    :WaitForChild("Main")
-    :WaitForChild("Statistics")
-    :WaitForChild("List")
-    :WaitForChild("Playtime")
-    :WaitForChild("Boost")
-
-
-local function UpdateStats()
+local function UpdateCoins()
 
     CoinsText:Set(
         "💰 Coins: " .. Coins.Text
-    )
-
-    DPSText:Set(
-        "⚔️ DPS: " .. DPS.Text
-    )
-
-    PlaytimeText:Set(
-        "⏱️ Playtime: " .. Playtime.Text
     )
 
 end
 
+UpdateCoins()
 
--- Initial values
-UpdateStats()
-
-
--- Live updates
 Coins:GetPropertyChangedSignal("Text"):Connect(function()
+
     CoinsText:Set(
         "💰 Coins: " .. Coins.Text
     )
-end)
 
-DPS:GetPropertyChangedSignal("Text"):Connect(function()
-    DPSText:Set(
-        "⚔️ DPS: " .. DPS.Text
-    )
-end)
-
-Playtime:GetPropertyChangedSignal("Text"):Connect(function()
-    PlaytimeText:Set(
-        "⏱️ Playtime: " .. Playtime.Text
-    )
 end)
 
 
@@ -198,7 +149,6 @@ Home:CreateButton({
 
     end
 })
-
 
 --// AUTOFARM
 
