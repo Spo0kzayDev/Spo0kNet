@@ -196,7 +196,7 @@ Home:CreateButton({
                         queue_on_teleport([[
 
                             loadstring(game:HttpGet(
-                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/Loader"
                             ))()
 
                         ]])
