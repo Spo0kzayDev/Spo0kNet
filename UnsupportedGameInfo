@@ -2,6 +2,11 @@ local Rayfield = loadstring(game:HttpGet(
     "https://sirius.menu/gen2"
 ))()
 
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+local Player = Players.LocalPlayer
+
 local Window = Rayfield:CreateWindow({
     name = "Spo0kNet"
 })
@@ -10,6 +15,8 @@ local Info = Window:CreateTab({
     name = "ℹ️ Info"
 })
 
+--// INFORMATION
+
 local Information = Info:CreateDivider()
 Information:Set("Information")
 
@@ -17,17 +24,92 @@ Info:CreateText({
     text = "Hello! If you are seeing this, then you used Spo0kNet on an unsupported game! However, if this is a game that is clearly supported by the section underneath this, please report this to [@spo0kzay.] on Discord. Thx for using Spo0kNet!"
 })
 
+--// SUPPORTED GAMES
+
 local SupportedGames = Info:CreateDivider()
 SupportedGames:Set("Supported Games")
 
 Info:CreateButton({
     name = "🌱 Crop Incremental Reborn",
     callback = function()
+        Window:Notify({
+            title = "🌱 Crop Incremental Reborn",
+            content = "This doesn't teleport you there. Just looks cool.",
+            duration = 3,
+        })
     end
 })
 
 Info:CreateButton({
     name = "💪 Muscle Legends",
     callback = function()
+        Window:Notify({
+            title = "💪 Muscle Legends",
+            content = "This doesn't teleport you there. Just looks cool.",
+            duration = 3,
+        })
+    end
+})
+
+--// SCRIPT
+
+local Script = Info:CreateDivider()
+Script:Set("Script")
+
+Info:CreateButton({
+    name = "🔄 Rejoin Server",
+    callback = function()
+        Window:Popup({
+            title = "Rejoin Server?",
+            content = "Are you sure you want to rejoin the current server?",
+            options = {
+                {
+                    text = "Cancel"
+                },
+                {
+                    text = "Rejoin",
+                    style = "primary",
+                    callback = function()
+                        queue_on_teleport([[
+                            loadstring(game:HttpGet(
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/Loader"
+                            ))()
+                        ]])
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+                    end
+                }
+            }
+        })
+    end
+})
+
+Info:CreateButton({
+    name = "❌ Unload Script",
+    callback = function()
+        Window:Popup({
+            title = "Unload Script?",
+            content = "Are you sure you want to unload Spo0kNet? This will make you rejoin.",
+            options = {
+                {
+                    text = "Cancel"
+                },
+                {
+                    text = "Unload",
+                    style = "danger",
+                    callback = function()
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+                    end
+                }
+            }
+        })
     end
 })
