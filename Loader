@@ -3,8 +3,8 @@ if not game:IsLoaded() then
 end
 
 local Scripts = {
-    [97109871947415] = "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental",
-    [3623096087] = "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/MuscleLegends"
+    [10574518789] = "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental",
+    [1268927906] = "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/MuscleLegends"
 }
 
 local ScriptURL = Scripts[game.GameId]
