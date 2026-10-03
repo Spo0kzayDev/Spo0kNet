@@ -4,4 +4,6 @@ end
 
 if game.GameId == 10574518789 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental"))()
+elseif game.GameId == 10541331578 then
+    
 end
