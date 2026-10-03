@@ -2,8 +2,8 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-if game.GameId == 10574518789 then
+if game.GameId == 97109871947415 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/CropIncremental"))()
-elseif game.GameId == 10541331578 then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/PolyLoot"))()
+elseif game.GameId == 3623096087 then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/refs/heads/main/MuscleLegends"))()
 end
