@@ -1,0 +1,1690 @@
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+local Player = Players.LocalPlayer
+
+local Rayfield = loadstring(game:HttpGet(
+    "https://sirius.menu/gen2"
+))()
+
+local Window = Rayfield:CreateWindow({
+    name = "Spo0kNet"
+})
+
+--// SAFEZONE PLATFORM
+
+local Platform = Instance.new("Part")
+
+Platform.Name = "Spo0kNetPlatform"
+Platform.Shape = Enum.PartType.Cylinder
+Platform.Size = Vector3.new(2, 100, 100)
+
+Platform.CFrame =
+    CFrame.new(-44, 293, 2822)
+    * CFrame.Angles(0, 0, math.rad(90))
+
+Platform.Color = Color3.fromRGB(0, 0, 0)
+Platform.Transparency = 0
+Platform.Material = Enum.Material.SmoothPlastic
+
+Platform.Anchored = true
+Platform.CanCollide = true
+Platform.CanTouch = true
+Platform.CanQuery = true
+
+Platform.Parent = workspace
+
+
+--// HOME
+
+local Home = Window:CreateTab({
+    name = "🏠 Home"
+})
+
+--// PLAYER INFO
+
+local Udivider = Home:CreateDivider()
+Udivider:Set("User")
+
+Home:CreateText({
+    text = "👤 DisplayName: " .. Player.DisplayName
+})
+
+Home:CreateText({
+    text = "🪪 UserName: " .. Player.Name
+})
+
+--// STATS
+
+local Leaderstats = Player:WaitForChild("leaderstats")
+
+local Strength = Leaderstats:WaitForChild("Strength")
+local Rebirths = Leaderstats:WaitForChild("Rebirths")
+
+local Gems = Player:WaitForChild("Gems")
+local RebirthTokens = Player:WaitForChild("RebirthTokens")
+
+--// NUMBER ABBREVIATION
+
+local function Abbreviate(Number)
+
+    Number = tonumber(Number) or 0
+
+    if Number >= 1e12 then
+        return string.format("%.2fT", Number / 1e12)
+
+    elseif Number >= 1e9 then
+        return string.format("%.2fB", Number / 1e9)
+
+    elseif Number >= 1e6 then
+        return string.format("%.2fM", Number / 1e6)
+
+    elseif Number >= 1e3 then
+        return string.format("%.2fK", Number / 1e3)
+
+    else
+        return tostring(Number)
+    end
+
+end
+
+local Stdivider = Home:CreateDivider()
+Stdivider:Set("Stats")
+
+--// STRENGTH
+
+local StrengthText = Home:CreateText({
+    text = "💪 Strength: Loading..."
+})
+
+local function UpdateStrength()
+
+    StrengthText:Set(
+        "💪 Strength: " .. Abbreviate(Strength.Value)
+    )
+
+end
+
+UpdateStrength()
+
+Strength:GetPropertyChangedSignal("Value"):Connect(UpdateStrength)
+
+--// GEMS
+
+local GemsText = Home:CreateText({
+    text = "💎 Gems: Loading..."
+})
+
+local function UpdateGems()
+
+    GemsText:Set(
+        "💎 Gems: " .. Abbreviate(Gems.Value)
+    )
+
+end
+
+UpdateGems()
+
+Gems:GetPropertyChangedSignal("Value"):Connect(UpdateGems)
+
+--// REBIRTHS
+
+local RebirthsText = Home:CreateText({
+    text = "🔄 Rebirths: Loading..."
+})
+
+local function UpdateRebirths()
+
+    RebirthsText:Set(
+        "🔄 Rebirths: " .. Abbreviate(Rebirths.Value)
+    )
+
+end
+
+UpdateRebirths()
+
+Rebirths:GetPropertyChangedSignal("Value"):Connect(UpdateRebirths)
+
+--// REBIRTH TOKENS
+
+local RebirthTokensText = Home:CreateText({
+    text = "🎟️ Rebirth Tokens: Loading..."
+})
+
+local function UpdateRebirthTokens()
+
+    RebirthTokensText:Set(
+        "🎟️ Rebirth Tokens: " .. Abbreviate(RebirthTokens.Value)
+    )
+
+end
+
+UpdateRebirthTokens()
+
+RebirthTokens:GetPropertyChangedSignal("Value"):Connect(UpdateRebirthTokens)
+
+
+--// DIVIDER
+
+local Sdivider = Home:CreateDivider()
+Sdivider:Set("Script")
+
+--// REJOIN SERVER
+
+Home:CreateButton({
+    name = "🔄 Rejoin Server",
+
+    callback = function()
+
+        Window:Popup({
+            title = "Rejoin Server?",
+            content = "Are you sure you want to rejoin the current server?",
+
+            options = {
+
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Rejoin",
+                    style = "primary",
+
+                    callback = function()
+
+                        queue_on_teleport([[
+
+                            loadstring(game:HttpGet(
+                                "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
+                            ))()
+
+                        ]])
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+
+                    end
+                }
+
+            }
+        })
+
+    end
+})
+
+
+--// UNLOAD SCRIPT
+
+Home:CreateButton({
+    name = "⚠️ Unload Script",
+
+    callback = function()
+
+        Window:Popup({
+            title = "Unload Script?",
+            content = "Are you sure you want to unload Spo0kNet? This will make you rejoin.",
+
+            options = {
+
+                {
+                    text = "Cancel",
+                    style = "neutral"
+                },
+
+                {
+                    text = "Unload",
+                    style = "danger",
+
+                    callback = function()
+
+                        TeleportService:TeleportToPlaceInstance(
+                            game.PlaceId,
+                            game.JobId,
+                            Player
+                        )
+
+                    end
+                }
+
+            }
+        })
+
+    end
+})
+
+--// AUTOFARM VARIABLES
+
+local AutotrainEnabled = false
+local AutotrainTask = nil
+local AutotrainStartTime = nil
+
+local AutoKillEnabled = false
+local AutoKillTask = nil
+local AutoKillStartTime = nil
+
+local SelectedStrengthMethod = "Auto"
+local TeleportToSafezoneEnabled = false
+
+local SelectedTargetKarma = "Both"
+local SelectedTargetStrength = "Everyone"
+
+local OldPosition = nil
+
+local CurrentTrainingTool = nil
+local CurrentTrainingMethod = nil
+
+local CurrentKillTarget = nil
+local CurrentKillPunch = nil
+
+local StrengthMethods = {
+    "Handstands",
+    "Pushups",
+    "Situps",
+    "Weight"
+}
+
+--// NOTIFICATIONS
+
+local function Notify(Title, Content, Duration)
+
+    Window:Notify({
+        title = Title,
+        content = Content,
+        duration = Duration or 3
+    })
+
+end
+
+--// FORMAT ACTIVE TIME
+
+local function FormatActiveTime(StartTime)
+
+    if not StartTime then
+        return "0s"
+    end
+
+    local Elapsed =
+        math.max(0, os.clock() - StartTime)
+
+    local Hours =
+        math.floor(Elapsed / 3600)
+
+    local Minutes =
+        math.floor((Elapsed % 3600) / 60)
+
+    local Seconds =
+        math.floor(Elapsed % 60)
+
+    if Hours > 0 then
+
+        return string.format(
+            "%dh %dm %ds",
+            Hours,
+            Minutes,
+            Seconds
+        )
+
+    elseif Minutes > 0 then
+
+        return string.format(
+            "%dm %ds",
+            Minutes,
+            Seconds
+        )
+
+    else
+
+        return string.format(
+            "%ds",
+            Seconds
+        )
+
+    end
+
+end
+
+--// MOVEMENT CONTROLS
+
+local PlayerModule = require(
+    Player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule")
+)
+
+local Controls = PlayerModule:GetControls()
+
+local MovementLocked = false
+
+local function SetMovementLocked(Value)
+
+    MovementLocked = Value
+
+    if Value then
+        Controls:Disable()
+    else
+        Controls:Enable()
+    end
+
+end
+
+--// GET CHARACTER
+
+local function GetCharacter()
+
+    return Player.Character or Player.CharacterAdded:Wait()
+
+end
+
+--// GET HRP
+
+local function GetHRP()
+
+    local Character = Player.Character
+
+    if not Character then
+        return nil
+    end
+
+    return Character:FindFirstChild("HumanoidRootPart")
+
+end
+
+--// SET TRAINING SPEED
+
+local function SetSpeedToZero()
+
+    local PlayerGui =
+        Player:FindFirstChild("PlayerGui")
+
+    if not PlayerGui then
+        return
+    end
+
+    local Success, TextBox = pcall(function()
+
+        return PlayerGui
+            .gameGui
+            .settingsNewMenu
+            .Content
+            .ListLayout
+            .ScrollingFrame
+            .SizeSpeed
+            .SizeBase
+            .List["1"]
+            .SetBase
+            .TextBox
+
+    end)
+
+    if not Success or not TextBox then
+        return
+    end
+
+    TextBox:CaptureFocus()
+
+    TextBox.Text = "0.91"
+
+    TextBox:ReleaseFocus(true)
+
+end
+
+--// FIND STRENGTH TOOL
+
+local function FindTool(Method)
+
+    local Backpack =
+        Player:FindFirstChildOfClass("Backpack")
+
+    if not Backpack then
+        return nil
+    end
+
+    local Tool =
+        Backpack:FindFirstChild(Method)
+
+    if Tool and Tool:IsA("Tool") then
+        return Tool
+    end
+
+    return nil
+
+end
+
+--// FIND BEST STRENGTH TOOL
+
+local function FindBestStrengthTool()
+
+    if SelectedStrengthMethod ~= "Auto" then
+
+        local Tool =
+            FindTool(SelectedStrengthMethod)
+
+        if Tool then
+            return Tool, SelectedStrengthMethod
+        end
+
+        return nil
+
+    end
+
+    for _, Method in ipairs(StrengthMethods) do
+
+        local Tool =
+            FindTool(Method)
+
+        if Tool then
+            return Tool, Method
+        end
+
+    end
+
+    return nil
+
+end
+
+--// FIND HIGHER PRIORITY TOOL
+
+local function FindHigherPriorityTool()
+
+    if not CurrentTrainingMethod then
+        return nil
+    end
+
+    for _, Method in ipairs(StrengthMethods) do
+
+        if Method == CurrentTrainingMethod then
+            break
+        end
+
+        local Tool =
+            FindTool(Method)
+
+        if Tool then
+            return Tool, Method
+        end
+
+    end
+
+    return nil
+
+end
+
+--// SWITCH STRENGTH TOOL
+
+local function SwitchTrainingTool(Tool, Method)
+
+    if not Tool then
+        return
+    end
+
+    local Character =
+        GetCharacter()
+
+    local Humanoid =
+        Character:FindFirstChildOfClass("Humanoid")
+
+    if not Humanoid then
+        return
+    end
+
+    Humanoid:UnequipTools()
+
+    task.wait()
+
+    CurrentTrainingTool = Tool
+    CurrentTrainingMethod = Method
+
+    Humanoid:EquipTool(Tool)
+
+end
+
+--// SAFEZONE
+
+local SafezonePosition = Vector3.new(
+    -44,
+    298,
+    2822
+)
+
+local SafezoneCheckDistance = 15
+
+local function TeleportToSafezone()
+
+    local HRP = GetHRP()
+
+    if HRP then
+
+        HRP.CFrame =
+            CFrame.new(SafezonePosition)
+
+    end
+
+end
+
+local function IsAtSafezone()
+
+    local HRP = GetHRP()
+
+    if not HRP then
+        return false
+    end
+
+    return (
+        HRP.Position - SafezonePosition
+    ).Magnitude <= SafezoneCheckDistance
+
+end
+
+local function EnforceSafezone()
+
+    if not AutotrainEnabled
+        or not TeleportToSafezoneEnabled then
+        return
+    end
+
+    local HRP = GetHRP()
+
+    if not HRP then
+        return
+    end
+
+    if not IsAtSafezone() then
+        TeleportToSafezone()
+    end
+
+end
+
+--// RETURN TO OLD POSITION
+
+local function ReturnToOldPosition()
+
+    if not OldPosition then
+        return
+    end
+
+    local HRP = GetHRP()
+
+    if HRP then
+        HRP.CFrame = OldPosition
+    end
+
+    OldPosition = nil
+
+end
+
+--// START STRENGTH AUTOTRAIN
+
+local function StartStrengthAutotrain()
+
+    CurrentTrainingTool = nil
+    CurrentTrainingMethod = nil
+
+    if TeleportToSafezoneEnabled then
+
+        local HRP = GetHRP()
+
+        if HRP then
+            OldPosition = HRP.CFrame
+        end
+
+        TeleportToSafezone()
+
+        SetMovementLocked(true)
+
+    else
+
+        SetMovementLocked(false)
+
+    end
+
+    local Tool, Method =
+        FindBestStrengthTool()
+
+    if not Tool then
+
+        Notify(
+            "Autotrain",
+            "No strength training tool available.",
+            3
+        )
+
+        return
+
+    end
+
+    SwitchTrainingTool(
+        Tool,
+        Method
+    )
+
+    local CheckTimer = 0
+
+    AutotrainTask = task.spawn(function()
+
+        while AutotrainEnabled do
+
+            if TeleportToSafezoneEnabled then
+
+                EnforceSafezone()
+
+                if not MovementLocked then
+                    SetMovementLocked(true)
+                end
+
+            else
+
+                if MovementLocked then
+                    SetMovementLocked(false)
+                end
+
+            end
+
+            -- Check current tool
+            if CurrentTrainingTool then
+
+                local Character =
+                    Player.Character
+
+                local ToolStillExists =
+                    CurrentTrainingTool.Parent
+                        == Player.Backpack
+                    or (
+                        Character
+                        and CurrentTrainingTool.Parent
+                            == Character
+                    )
+
+                if not ToolStillExists then
+
+                    CurrentTrainingTool = nil
+                    CurrentTrainingMethod = nil
+
+                    local NewTool, NewMethod =
+                        FindBestStrengthTool()
+
+                    if NewTool then
+
+                        SwitchTrainingTool(
+                            NewTool,
+                            NewMethod
+                        )
+
+                    end
+
+                end
+
+            end
+
+            -- Find a tool if we don't have one
+            if not CurrentTrainingTool then
+
+                local NewTool, NewMethod =
+                    FindBestStrengthTool()
+
+                if NewTool then
+
+                    SwitchTrainingTool(
+                        NewTool,
+                        NewMethod
+                    )
+
+                end
+
+            else
+
+                local Character =
+                    Player.Character
+
+                if Character
+                    and CurrentTrainingTool.Parent
+                        == Character then
+
+                    CurrentTrainingTool:Activate()
+
+                elseif CurrentTrainingTool.Parent
+                    == Player.Backpack then
+
+                    local Humanoid =
+                        Character
+                        and Character:FindFirstChildOfClass("Humanoid")
+
+                    if Humanoid then
+
+                        Humanoid:EquipTool(
+                            CurrentTrainingTool
+                        )
+
+                    end
+
+                end
+
+            end
+
+            -- Check for better method every second
+            CheckTimer += 0.2
+
+            if CheckTimer >= 1 then
+
+                CheckTimer = 0
+
+                if SelectedStrengthMethod == "Auto"
+                    and CurrentTrainingTool then
+
+                    local BetterTool, BetterMethod =
+                        FindHigherPriorityTool()
+
+                    if BetterTool then
+
+                        SwitchTrainingTool(
+                            BetterTool,
+                            BetterMethod
+                        )
+
+                    end
+
+                end
+
+            end
+
+            task.wait(0.2)
+
+        end
+
+    end)
+
+end
+
+--// START AUTOTRAIN
+
+local function StartAutotrain()
+
+    if AutoKillEnabled then
+        StopAutoKill()
+        AutoKillEnabled = false
+    end
+
+    if AutotrainTask then
+
+        task.cancel(AutotrainTask)
+
+        AutotrainTask = nil
+
+    end
+
+    CurrentTrainingTool = nil
+    CurrentTrainingMethod = nil
+
+    AutotrainStartTime = os.clock()
+
+    SetSpeedToZero()
+
+    task.wait(0.3)
+
+    StartStrengthAutotrain()
+
+end
+
+--// STOP AUTOTRAIN
+
+local function StopAutotrain()
+
+    local WasEnabled =
+        AutotrainEnabled
+
+    AutotrainEnabled = false
+
+    if AutotrainTask then
+
+        task.cancel(AutotrainTask)
+
+        AutotrainTask = nil
+
+    end
+
+    local Character =
+        Player.Character
+
+    local Humanoid =
+        Character
+        and Character:FindFirstChildOfClass("Humanoid")
+
+    if Humanoid then
+        Humanoid:UnequipTools()
+    end
+
+    SetMovementLocked(false)
+
+    CurrentTrainingTool = nil
+    CurrentTrainingMethod = nil
+
+    if TeleportToSafezoneEnabled then
+        ReturnToOldPosition()
+    end
+
+    if WasEnabled then
+
+        Notify(
+            "Autotrain Disabled",
+            "Active for " ..
+            FormatActiveTime(AutotrainStartTime),
+            4
+        )
+
+    end
+
+    AutotrainStartTime = nil
+
+end
+
+--// AUTO KILL
+--// KARMA
+
+local function GetPlayerKarma(PlayerObject)
+
+    local GoodKarma =
+        PlayerObject:FindFirstChild("goodKarma")
+
+    local EvilKarma =
+        PlayerObject:FindFirstChild("evilKarma")
+
+    if not GoodKarma or not EvilKarma then
+        return 0, 0
+    end
+
+    return tonumber(GoodKarma.Value) or 0,
+        tonumber(EvilKarma.Value) or 0
+
+end
+
+--// STRENGTH
+
+local function GetPlayerStrength(PlayerObject)
+
+    local Leaderstats =
+        PlayerObject:FindFirstChild("leaderstats")
+
+    if not Leaderstats then
+        return 0
+    end
+
+    local Strength =
+        Leaderstats:FindFirstChild("Strength")
+
+    if not Strength then
+        return 0
+    end
+
+    return tonumber(Strength.Value) or 0
+
+end
+
+--// CURRENT MAP
+
+local function IsInOverchargedGym(PlayerObject)
+
+    local CurrentMap =
+        PlayerObject:FindFirstChild("currentMap")
+
+    if not CurrentMap then
+        return false
+    end
+
+    return CurrentMap.Value == "Overcharged Gym"
+
+end
+
+--// KARMA FILTER
+
+local function PassesKarmaFilter(PlayerObject)
+
+    if SelectedTargetKarma == "Both" then
+        return true
+    end
+
+    local GoodKarma, EvilKarma =
+        GetPlayerKarma(PlayerObject)
+
+    if SelectedTargetKarma == "Good" then
+        return GoodKarma > EvilKarma
+
+    elseif SelectedTargetKarma == "Bad" then
+        return EvilKarma > GoodKarma
+    end
+
+    return true
+
+end
+
+--// STRENGTH FILTER
+
+local function PassesStrengthFilter(PlayerObject)
+
+    if SelectedTargetStrength == "Everyone" then
+        return true
+    end
+
+    local LocalStrength =
+        GetPlayerStrength(Player)
+
+    local TargetStrength =
+        GetPlayerStrength(PlayerObject)
+
+    return TargetStrength < LocalStrength
+
+end
+
+--// GET VALID TARGETS
+
+local function GetValidKillTargets()
+
+    local Targets = {}
+
+    for _, PlayerObject in ipairs(
+        Players:GetPlayers()
+    ) do
+
+        if PlayerObject ~= Player then
+
+            -- Never target Overcharged Gym
+            if not IsInOverchargedGym(PlayerObject) then
+
+                -- Karma filter
+                if PassesKarmaFilter(PlayerObject) then
+
+                    -- Strength filter
+                    if PassesStrengthFilter(PlayerObject) then
+
+                        table.insert(
+                            Targets,
+                            PlayerObject
+                        )
+
+                    end
+
+                end
+
+            end
+
+        end
+
+    end
+
+    return Targets
+
+end
+
+--// FIND RANDOM TARGET
+
+local function GetRandomKillTarget(Targets)
+
+    if #Targets == 0 then
+        return nil
+    end
+
+    return Targets[
+        math.random(1, #Targets)
+    ]
+
+end
+
+--// FIND WEAKEST TARGET
+
+local function GetWeakestKillTarget(Targets)
+
+    if #Targets == 0 then
+        return nil
+    end
+
+    local Weakest = nil
+    local WeakestStrength = math.huge
+
+    for _, PlayerObject in ipairs(Targets) do
+
+        local Strength =
+            GetPlayerStrength(PlayerObject)
+
+        if Strength < WeakestStrength then
+
+            WeakestStrength = Strength
+            Weakest = PlayerObject
+
+        end
+
+    end
+
+    return Weakest
+
+end
+
+--// FIND PUNCH
+
+local function FindKillPunch()
+
+    local Character =
+        Player.Character
+
+    if Character then
+
+        local Equipped =
+            Character:FindFirstChild("Punch")
+
+        if Equipped
+            and Equipped:IsA("Tool") then
+
+            return Equipped
+
+        end
+
+    end
+
+    local Backpack =
+        Player:FindFirstChildOfClass("Backpack")
+
+    if not Backpack then
+        return nil
+    end
+
+    local Punch =
+        Backpack:FindFirstChild("Punch")
+
+    if Punch
+        and Punch:IsA("Tool") then
+
+        return Punch
+
+    end
+
+    return nil
+
+end
+
+--// EQUIP PUNCH
+
+local function EquipKillPunch()
+
+    local Punch =
+        FindKillPunch()
+
+    if not Punch then
+        return nil
+    end
+
+    local Character =
+        GetCharacter()
+
+    local Humanoid =
+        Character:FindFirstChildOfClass("Humanoid")
+
+    if not Humanoid then
+        return nil
+    end
+
+    if Punch.Parent ~= Character then
+
+        Humanoid:EquipTool(Punch)
+
+        task.wait()
+
+    end
+
+    CurrentKillPunch = Punch
+
+    return Punch
+
+end
+
+--// TARGET ALIVE
+
+local function IsTargetAlive(Target)
+
+    if not Target then
+        return false
+    end
+
+    local Character =
+        Target.Character
+
+    if not Character then
+        return false
+    end
+
+    local Humanoid =
+        Character:FindFirstChildOfClass("Humanoid")
+
+    if not Humanoid then
+        return false
+    end
+
+    return Humanoid.Health > 0
+
+end
+
+--// TARGET STILL VALID
+
+local function IsTargetStillValid(Target)
+
+    if not Target then
+        return false
+    end
+
+    if Target == Player then
+        return false
+    end
+
+    if not IsTargetAlive(Target) then
+        return false
+    end
+
+    if IsInOverchargedGym(Target) then
+        return false
+    end
+
+    if not PassesKarmaFilter(Target) then
+        return false
+    end
+
+    if not PassesStrengthFilter(Target) then
+        return false
+    end
+
+    return true
+
+end
+
+--// MOVE TO TARGET
+
+local function MoveToTarget(Target)
+
+    local MyHRP =
+        GetHRP()
+
+    if not MyHRP then
+        return
+    end
+
+    if not Target then
+        return
+    end
+
+    local TargetCharacter =
+        Target.Character
+
+    if not TargetCharacter then
+        return
+    end
+
+    local TargetHRP =
+        TargetCharacter:FindFirstChild(
+            "HumanoidRootPart"
+        )
+
+    if not TargetHRP then
+        return
+    end
+
+    MyHRP.CFrame =
+        TargetHRP.CFrame
+
+end
+
+--// START AUTO KILL
+
+local function StartAutoKill()
+
+    if AutotrainEnabled then
+
+        StopAutotrain()
+
+        AutotrainEnabled = false
+
+    end
+
+    if AutoKillTask then
+
+        task.cancel(AutoKillTask)
+
+        AutoKillTask = nil
+
+    end
+
+    CurrentKillTarget = nil
+    CurrentKillPunch = nil
+
+    AutoKillStartTime = os.clock()
+
+    SetSpeedToZero()
+
+    task.wait(0.3)
+
+    SetMovementLocked(true)
+
+    AutoKillTask = task.spawn(function()
+
+        local NoTargetsNotified = false
+
+        while AutoKillEnabled do
+
+            -- Keep movement disabled
+            if not MovementLocked then
+                SetMovementLocked(true)
+            end
+
+            -- Check current target first
+            if CurrentKillTarget then
+
+                if not IsTargetStillValid(
+                    CurrentKillTarget
+                ) then
+
+                    -- Target died / became invalid
+                    -- immediately move on
+                    CurrentKillTarget = nil
+
+                end
+
+            end
+
+            -- Find a new target
+            if not CurrentKillTarget then
+
+                local Targets =
+                    GetValidKillTargets()
+
+                if #Targets > 0 then
+
+                    -- We have targets again
+                    NoTargetsNotified = false
+
+                    if SelectedTargetStrength
+                        == "Killable" then
+
+                        CurrentKillTarget =
+                            GetWeakestKillTarget(
+                                Targets
+                            )
+
+                    else
+
+                        CurrentKillTarget =
+                            GetRandomKillTarget(
+                                Targets
+                            )
+
+                    end
+
+                else
+
+                    -- Nobody available
+                    if not NoTargetsNotified then
+
+                        Notify(
+                            "Auto Kill",
+                            "No valid players available.",
+                            3
+                        )
+
+                        NoTargetsNotified = true
+
+                    end
+
+                    TeleportToSafezone()
+
+                    task.wait(1)
+
+                    continue
+
+                end
+
+            end
+
+            -- Make sure Punch exists
+            local Punch =
+                CurrentKillPunch
+
+            if not Punch
+                or (
+                    Punch.Parent ~= Player.Character
+                    and Punch.Parent ~= Player.Backpack
+                ) then
+
+                Punch =
+                    EquipKillPunch()
+
+            end
+
+            -- Make sure target is still alive
+            if not IsTargetStillValid(
+                CurrentKillTarget
+            ) then
+
+                CurrentKillTarget = nil
+
+                task.wait(0.05)
+
+                continue
+
+            end
+
+            -- Move to target
+            MoveToTarget(
+                CurrentKillTarget
+            )
+
+            -- Activate Punch
+            if Punch
+                and Punch.Parent == Player.Character then
+
+                Punch:Activate()
+
+            elseif Punch
+                and Punch.Parent == Player.Backpack then
+
+                local Character =
+                    Player.Character
+
+                local Humanoid =
+                    Character
+                    and Character:FindFirstChildOfClass(
+                        "Humanoid"
+                    )
+
+                if Humanoid then
+
+                    Humanoid:EquipTool(
+                        Punch
+                    )
+
+                end
+
+            end
+
+            -- IMPORTANT:
+            -- Check immediately after the hit.
+            -- If they died, next iteration selects
+            -- another player.
+            task.wait(0.2)
+
+            if CurrentKillTarget
+                and not IsTargetAlive(
+                    CurrentKillTarget
+                ) then
+
+                CurrentKillTarget = nil
+
+            end
+
+        end
+
+    end)
+
+end
+
+--// STOP AUTO KILL
+
+local function StopAutoKill()
+
+    local WasEnabled =
+        AutoKillEnabled
+
+    AutoKillEnabled = false
+
+    if AutoKillTask then
+
+        task.cancel(AutoKillTask)
+
+        AutoKillTask = nil
+
+    end
+
+    CurrentKillTarget = nil
+    CurrentKillPunch = nil
+
+    local Character =
+        Player.Character
+
+    local Humanoid =
+        Character
+        and Character:FindFirstChildOfClass(
+            "Humanoid"
+        )
+
+    if Humanoid then
+        Humanoid:UnequipTools()
+    end
+
+    SetMovementLocked(false)
+
+    if WasEnabled then
+
+        Notify(
+            "Auto Kill Disabled",
+            "Active for " ..
+            FormatActiveTime(
+                AutoKillStartTime
+            ),
+            4
+        )
+
+    end
+
+    AutoKillStartTime = nil
+
+end
+
+--// AUTOFARM TAB
+
+local Autofarm = Window:CreateTab({
+    name = "🌾 Autofarm"
+})
+
+--// AUTOMATION
+
+local ToggleDivider =
+    Autofarm:CreateDivider()
+
+ToggleDivider:Set("Automation")
+
+Autofarm:CreateToggle({
+    name = "⚡ Autotrain",
+
+    callback = function(Value)
+
+        if Value then
+
+            -- Only one automation can run
+            if AutoKillEnabled then
+
+                StopAutoKill()
+
+            end
+
+            AutotrainEnabled = true
+
+            StartAutotrain()
+
+        else
+
+            StopAutotrain()
+
+        end
+
+    end
+})
+
+Autofarm:CreateToggle({
+    name = "⚔️ Auto Kill",
+
+    callback = function(Value)
+
+        if Value then
+
+            -- Only one automation can run
+            if AutotrainEnabled then
+
+                StopAutotrain()
+
+            end
+
+            AutoKillEnabled = true
+
+            StartAutoKill()
+
+        else
+
+            StopAutoKill()
+
+        end
+
+    end
+})
+
+--// TRAIN SETTINGS
+
+local TrainDivider =
+    Autofarm:CreateDivider()
+
+TrainDivider:Set("Train Settings")
+
+Autofarm:CreateDropdown({
+    name = "🏋️ Strength Method",
+
+    options = {
+        "Auto",
+        "Handstands",
+        "Pushups",
+        "Situps",
+        "Weight"
+    },
+
+    currentOption = "Auto",
+
+    callback = function(Value)
+
+        SelectedStrengthMethod = Value
+
+        if AutotrainEnabled then
+
+            StopAutotrain()
+
+            AutotrainEnabled = true
+
+            StartAutotrain()
+
+        end
+
+    end
+})
+
+Autofarm:CreateToggle({
+    name = "🛡️ Teleport To Safezone",
+
+    callback = function(Value)
+
+        TeleportToSafezoneEnabled = Value
+
+        if AutotrainEnabled then
+
+            if Value then
+
+                local HRP = GetHRP()
+
+                if HRP then
+                    OldPosition = HRP.CFrame
+                end
+
+                TeleportToSafezone()
+
+                SetMovementLocked(true)
+
+            else
+
+                SetMovementLocked(false)
+
+                ReturnToOldPosition()
+
+            end
+
+        end
+
+    end
+})
+
+--// KILL SETTINGS
+
+local KillDivider =
+    Autofarm:CreateDivider()
+
+KillDivider:Set("Kill Settings")
+
+Autofarm:CreateDropdown({
+    name = "☯️ Target Karma",
+
+    options = {
+        "Both",
+        "Good",
+        "Bad"
+    },
+
+    currentOption = "Both",
+
+    callback = function(Value)
+
+        SelectedTargetKarma = Value
+
+        if AutoKillEnabled then
+
+            CurrentKillTarget = nil
+
+        end
+
+    end
+})
+
+Autofarm:CreateDropdown({
+    name = "💪 Target Strength",
+
+    options = {
+        "Everyone",
+        "Killable"
+    },
+
+    currentOption = "Everyone",
+
+    callback = function(Value)
+
+        SelectedTargetStrength = Value
+
+        if AutoKillEnabled then
+
+            CurrentKillTarget = nil
+
+        end
+
+    end
+})
+
+--// TELEPORTS
+
+local Teleports = Window:CreateTab({
+    name = "📍 Teleports"
+})
+
+local TeleportDivider = Teleports:CreateDivider()
+TeleportDivider:Set("Locations")
+
+Teleports:CreateButton({
+    name = "🛡️ Safezone",
+
+    callback = function()
+
+        local Character = Player.Character
+        local HRP = Character and Character:FindFirstChild("HumanoidRootPart")
+
+        if HRP then
+            HRP.CFrame = CFrame.new(-44, 298, 2822)
+        end
+
+    end
+})
