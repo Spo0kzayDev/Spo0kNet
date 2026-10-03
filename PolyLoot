@@ -19,6 +19,9 @@ local Home = Window:CreateTab({
 
 --// PLAYER INFO
 
+local Udivider = Home:CreateDivider()
+Udivider:Set("User")
+
 Home:CreateText({
     text = "👤 DisplayName: " .. Player.DisplayName
 })
@@ -27,43 +30,120 @@ Home:CreateText({
     text = "🪪 UserName: " .. Player.Name
 })
 
+--// STATS
 
---// COINS
+local Leaderstats = Player:WaitForChild("leaderstats")
 
-local PlayerGui = Player:WaitForChild("PlayerGui")
+local Strength = Leaderstats:WaitForChild("Strength")
+local Rebirths = Leaderstats:WaitForChild("Rebirths")
 
-local Coins = PlayerGui
-    :WaitForChild("HUD")
-    :WaitForChild("Holder")
-    :WaitForChild("LeftList")
-    :WaitForChild("YourCoins")
-    :WaitForChild("Coins")
+local Gems = Player:WaitForChild("Gems")
+local RebirthTokens = Player:WaitForChild("RebirthTokens")
 
-local CoinsText = Home:CreateText({
-    text = "💰 Coins: Loading..."
+--// NUMBER ABBREVIATION
+
+local function Abbreviate(Number)
+
+    Number = tonumber(Number) or 0
+
+    if Number >= 1e12 then
+        return string.format("%.2fT", Number / 1e12)
+
+    elseif Number >= 1e9 then
+        return string.format("%.2fB", Number / 1e9)
+
+    elseif Number >= 1e6 then
+        return string.format("%.2fM", Number / 1e6)
+
+    elseif Number >= 1e3 then
+        return string.format("%.2fK", Number / 1e3)
+
+    else
+        return tostring(Number)
+    end
+
+end
+
+local Stdivider = Home:CreateDivider()
+Stdivider:Set("Stats")
+
+--// STRENGTH
+
+local StrengthText = Home:CreateText({
+    text = "💪 Strength: Loading..."
 })
 
-local function UpdateCoins()
+local function UpdateStrength()
 
-    CoinsText:Set(
-        "💰 Coins: " .. Coins.Text
+    StrengthText:Set(
+        "💪 Strength: " .. Abbreviate(Strength.Value)
     )
 
 end
 
-UpdateCoins()
+UpdateStrength()
 
-Coins:GetPropertyChangedSignal("Text"):Connect(function()
+Strength:GetPropertyChangedSignal("Value"):Connect(UpdateStrength)
 
-    CoinsText:Set(
-        "💰 Coins: " .. Coins.Text
+--// GEMS
+
+local GemsText = Home:CreateText({
+    text = "💎 Gems: Loading..."
+})
+
+local function UpdateGems()
+
+    GemsText:Set(
+        "💎 Gems: " .. Abbreviate(Gems.Value)
     )
 
-end)
+end
+
+UpdateGems()
+
+Gems:GetPropertyChangedSignal("Value"):Connect(UpdateGems)
+
+--// REBIRTHS
+
+local RebirthsText = Home:CreateText({
+    text = "🔄 Rebirths: Loading..."
+})
+
+local function UpdateRebirths()
+
+    RebirthsText:Set(
+        "🔄 Rebirths: " .. Abbreviate(Rebirths.Value)
+    )
+
+end
+
+UpdateRebirths()
+
+Rebirths:GetPropertyChangedSignal("Value"):Connect(UpdateRebirths)
+
+--// REBIRTH TOKENS
+
+local RebirthTokensText = Home:CreateText({
+    text = "🎟️ Rebirth Tokens: Loading..."
+})
+
+local function UpdateRebirthTokens()
+
+    RebirthTokensText:Set(
+        "🎟️ Rebirth Tokens: " .. Abbreviate(RebirthTokens.Value)
+    )
+
+end
+
+UpdateRebirthTokens()
+
+RebirthTokens:GetPropertyChangedSignal("Value"):Connect(UpdateRebirthTokens)
 
 
-Home:CreateDivider()
+--// DIVIDER
 
+local Sdivider = Home:CreateDivider()
+Sdivider:Set("Script")
 
 --// REJOIN SERVER
 
@@ -90,9 +170,11 @@ Home:CreateButton({
                     callback = function()
 
                         queue_on_teleport([[
+
                             loadstring(game:HttpGet(
                                 "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/farm"
                             ))()
+
                         ]])
 
                         TeleportService:TeleportToPlaceInstance(
@@ -148,33 +230,4 @@ Home:CreateButton({
         })
 
     end
-})
-
---// AUTOFARM
-
-local Autofarm = Window:CreateTab({
-    name = "🌾 Autofarm"
-})
-
-Autofarm:CreateToggle({
-    name = "Autofarm",
-
-    callback = function(Value)
-        -- Autofarm logic
-    end
-})
-
-Autofarm:CreateToggle({
-    name = "🪙 Auto Collect Tokens",
-
-    callback = function(Value)
-        -- Auto collect token logic
-    end
-})
-
-
---// TELEPORTS
-
-local Teleports = Window:CreateTab({
-    name = "📍 Teleports"
 })
