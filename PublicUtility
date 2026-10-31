@@ -6,8 +6,36 @@
 local Config = _G.Spo0kNetConfig or {
     Yield = true,
     Dex = false,
-    Xbox = true
+    Xbox = true,
+    AutoLoad = true
 }
+
+-- Auto Load on the next teleported experience //
+if Config.AutoLoad == true then
+    local queueTeleport =
+        queue_on_teleport
+        or queueonteleport
+        or (syn and syn.queue_on_teleport)
+
+    if type(queueTeleport) == "function" then
+        local queuedConfig = string.format(
+            "_G.Spo0kNetConfig = { Yield = %s, Dex = %s, Xbox = %s, AutoLoad = true }; _G.LoadedScripts = {}; loadstring(game:HttpGet(%q))()",
+            tostring(Config.Yield == true),
+            tostring(Config.Dex == true),
+            tostring(Config.Xbox == true),
+            "https://raw.githubusercontent.com/Spo0kzayDev/Spo0kNet/main/PublicUtility"
+        )
+
+        local success, err = pcall(queueTeleport, queuedConfig)
+        if success then
+            print("Initialiser | Auto Load queued for next game.")
+        else
+            warn("Initialiser | Auto Load could not be queued: " .. tostring(err))
+        end
+    else
+        warn("Initialiser | Auto Load unsupported by this executor.")
+    end
+end
 
 -- Load //
 if not game:IsLoaded() then
