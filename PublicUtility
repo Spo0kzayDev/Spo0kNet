@@ -1,0 +1,99 @@
+
+-- CONFIG //
+local TELEPORT_GUARD = true
+
+local TARGET = 13086985452
+
+-- Load //
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- Teleport Guard //
+local UIS = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+
+local escHeld = false
+local teleporting = false
+
+if TELEPORT_GUARD and game.PlaceId ~= TARGET then
+    UIS.InputBegan:Connect(function(input, processed)
+        if input.KeyCode == Enum.KeyCode.Escape then
+            escHeld = true
+        elseif input.KeyCode == Enum.KeyCode.L and escHeld and not teleporting then
+            teleporting = true
+            TeleportService:Teleport(TARGET)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Escape then
+            escHeld = false
+        end
+    end)
+
+    print("Teleport Guard: ENABLED")
+else
+    print("Teleport Guard: DISABLED")
+end
+
+-- Set State //
+_G.LoadedScripts = _G.LoadedScripts or {}
+
+-- Loader Function //
+local function LoadScript(name, activated, url)
+    if not activated then
+        return
+    end
+
+    if _G.LoadedScripts[name] then
+        warn("----------")
+        warn("Initialiser | " .. name .. " is already loaded. Skipping..")
+        warn("----------")
+        return
+    end
+
+    _G.LoadedScripts[name] = true
+
+    print("----------")
+    print("Initialiser | Loading: " .. name)
+
+    local success, err = pcall(function()
+        local source = game:HttpGet(url)
+        local scriptFunction = loadstring(source)
+
+        if not scriptFunction then
+            error("Initialiser | Failed to compile script source.")
+        end
+
+        scriptFunction()
+    end)
+
+    if not success then
+        _G.LoadedScripts[name] = nil
+        warn("----------")
+        warn("Initialiser | " .. name .. " failed to load: " .. tostring(err))
+        warn("----------")
+        return
+    end
+
+    print("Initialiser | Loaded " .. name .. " successfully.")
+end
+
+-- Scripts //
+LoadScript(
+    "Yield",
+    true,
+    "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
+)
+
+task.wait(5)
+
+LoadScript(
+    "Dex",
+    false,
+    "https://github.com/Tesker-103/DexRecontinued/releases/latest/download/out.lua"
+)
+
+print("----------")
+print("Initialiser | All scripts processed.")
