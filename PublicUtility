@@ -1,23 +1,30 @@
+--==================================================
+-- SPOOKNET | PUBLIC UTILITY
+--==================================================
 
--- CONFIG //
-local TELEPORT_GUARD = true
-
-local TARGET = 13086985452
+-- Read executor configuration //
+local Config = _G.Spo0kNetConfig or {
+    Yield = true,
+    Dex = false,
+    Xbox = true
+}
 
 -- Load //
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
--- Teleport Guard //
-local UIS = game:GetService("UserInputService")
-local TeleportService = game:GetService("TeleportService")
+-- Xbox Menu / Teleport Guard //
+local TARGET = 13086985452
 
-local escHeld = false
-local teleporting = false
+if Config.Xbox == true and game.PlaceId ~= TARGET then
+    local UIS = game:GetService("UserInputService")
+    local TeleportService = game:GetService("TeleportService")
 
-if TELEPORT_GUARD and game.PlaceId ~= TARGET then
-    UIS.InputBegan:Connect(function(input, processed)
+    local escHeld = false
+    local teleporting = false
+
+    UIS.InputBegan:Connect(function(input)
         if input.KeyCode == Enum.KeyCode.Escape then
             escHeld = true
         elseif input.KeyCode == Enum.KeyCode.L and escHeld and not teleporting then
@@ -32,9 +39,9 @@ if TELEPORT_GUARD and game.PlaceId ~= TARGET then
         end
     end)
 
-    print("Teleport Guard: ENABLED")
+    print("Initialiser | Xbox Menu enabled")
 else
-    print("Teleport Guard: DISABLED")
+    print("Initialiser | Xbox Menu disabled")
 end
 
 -- Set State //
@@ -43,6 +50,7 @@ _G.LoadedScripts = _G.LoadedScripts or {}
 -- Loader Function //
 local function LoadScript(name, activated, url)
     if not activated then
+        print("Initialiser | " .. name .. " disabled. Skipping.")
         return
     end
 
@@ -83,15 +91,17 @@ end
 -- Scripts //
 LoadScript(
     "Yield",
-    true,
+    Config.Yield == true,
     "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
 )
 
-task.wait(5)
+if Config.Yield == true and Config.Dex == true then
+    task.wait(5)
+end
 
 LoadScript(
     "Dex",
-    false,
+    Config.Dex == true,
     "https://github.com/Tesker-103/DexRecontinued/releases/latest/download/out.lua"
 )
 
